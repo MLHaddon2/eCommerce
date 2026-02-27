@@ -1,0 +1,54 @@
+[
+	{
+		"id" : 1,
+		"firstName" : "admin",
+		"lastName"	: "admin",
+		"email" : "johndoe@example.com",
+		"address" : "123 Main St",
+		"lastLogin" : "Sun, 19 Jan 2025 08:26:15 GMT",
+		"ipHistory" : "[{\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 07:41:36 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 08:23:37 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 08:26:15 GMT\"}]",
+		"totalOrders" : 0,
+		"totalSpent" : 0.00,
+		"createdAt" : "2025-01-09 19:16:07",
+		"updatedAt" : "2025-01-19 08:26:16"
+	},
+	{
+		"id" : 2,
+		"firstName" : "Curly",
+		"lastName" : "freckles",
+		"email" : "johndoe@example.com",
+		"address" : "321 Main St Anytown, TX 77777",
+		"lastLogin" : "Sun, 09 Feb 2025 15:53:14 GMT",
+		"ipHistory" : "[{\"ip\": \"192.168.1.1\", \"timestamp\": \"Thu, 09 Jan 2025 19:34:09 GMT\"}, {\"ip\": \"192.168.1.2\", \"timestamp\": \"Thu, 09 Jan 2025 19:34:09 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sat, 01 Feb 2025 15:35:13 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sat, 01 Feb 2025 15:57:10 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sat, 08 Feb 2025 17:54:14 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sat, 08 Feb 2025 18:08:53 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sat, 08 Feb 2025 18:12:42 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sat, 08 Feb 2025 20:10:07 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sat, 08 Feb 2025 20:10:21 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sun, 09 Feb 2025 14:52:14 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sun, 09 Feb 2025 15:14:03 GMT\"}, {\"ip\": \"184.52.64.111\", \"timestamp\": \"Sun, 09 Feb 2025 15:53:14 GMT\"}]",
+		"totalOrders" : 10,
+		"totalSpent" : 500.00,
+		"createdAt" : "2025-01-09 19:34:09",
+		"updatedAt" : "2025-02-09 15:53:16"
+	},
+	{
+		"id" : 3,
+		"firstName" : "John",
+		"lastName" : "Doe",
+		"email" : "johndoe@example.com",
+		"address" : "500 Main St Anytown, TX 77777",
+		"lastLogin" : "Thu, 09 Jan 2025 19:36:35 GMT",
+		"ipHistory" : "[{\"ip\": \"192.168.1.1\", \"timestamp\": \"Thu, 09 Jan 2025 19:36:35 GMT\"}, {\"ip\": \"192.168.1.2\", \"timestamp\": \"Thu, 09 Jan 2025 19:36:35 GMT\"}]",
+		"totalOrders" : 10,
+		"totalSpent" : 500.00,
+		"createdAt" : "2025-01-09 19:36:35",
+		"updatedAt" : "2025-01-09 19:36:35"
+	},
+	{
+		"id" : 4,
+		"firstName" : "customerTest1",
+		"lastName" : "customerTest1",
+		"email" : "customer1@email.com",
+		"address" : "200 Main St Anytown, TX 77777",
+		"lastLogin" : "Mon, 20 Jan 2025 04:11:23 GMT",
+		"ipHistory" : "[{\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 07:41:36 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 08:23:37 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 18:54:47 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 19:14:52 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 19:25:10 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 19:44:34 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 19:48:25 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 19:51:25 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 20:06:16 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Sun, 19 Jan 2025 21:00:23 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Mon, 20 Jan 2025 01:31:18 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Mon, 20 Jan 2025 02:43:27 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Mon, 20 Jan 2025 02:59:07 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Mon, 20 Jan 2025 03:17:12 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Mon, 20 Jan 2025 03:34:01 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Mon, 20 Jan 2025 03:49:49 GMT\"}, {\"ip\": \"184.52.64.45\", \"timestamp\": \"Mon, 20 Jan 2025 04:11:23 GMT\"}]",
+		"totalOrders" : 0,
+		"totalSpent" : 0.00,
+		"createdAt" : "2025-01-19 07:41:37",
+		"updatedAt" : "2025-01-20 04:11:25"
+	}
+]
