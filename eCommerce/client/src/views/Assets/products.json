@@ -1,0 +1,282 @@
+[
+  {
+    "id": 1,
+    "name": "Classic Penny Loafer",
+    "summary": "Timeless leather penny loafer with premium craftsmanship",
+    "description": "Hand-crafted from full-grain Italian leather, these penny loafers feature traditional moccasin stitching, a comfortable leather lining, and durable rubber soles. Perfect for both business and casual wear.",
+    "price": 159.99,
+    "category": ["Loafers", "Formal", "Men's"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Most comfortable dress shoes I've owned. True to size." },
+      { "rating": 4, "comment": "Great quality, but needed a few days to break in." }
+    ],
+    "product_img": "https://i.imgur.com/sGifvdD.jpeg"
+  },
+  {
+    "id": 2,
+    "name": "Suede Driving Loafer",
+    "summary": "Casual suede loafer with driving sole",
+    "description": "Luxurious suede upper with distinctive nubbed rubber sole for enhanced grip while driving. Features memory foam insole and flexible construction for all-day comfort.",
+    "price": 129.99,
+    "category": ["Loafers", "Casual", "Men's"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect weekend shoe. So comfortable!" },
+      { "rating": 4, "comment": "Love the style but runs slightly large." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 3,
+    "name": "Urban Runner X1",
+    "summary": "Modern lifestyle sneaker with cutting-edge design",
+    "description": "Featuring a breathable knit upper, responsive cushioning, and sleek profile. The perfect blend of style and comfort for everyday wear.",
+    "price": 89.99,
+    "category": ["Sneakers", "Casual", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "These are fire! So comfortable and look amazing." },
+      { "rating": 4, "comment": "Great daily sneaker, but white gets dirty quickly." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 4,
+    "name": "Retro Court Classic",
+    "summary": "Vintage-inspired tennis sneaker",
+    "description": "Clean lines and classic styling make this leather court shoe a timeless addition to any wardrobe. Features cushioned insole and vulcanized rubber outsole.",
+    "price": 74.99,
+    "category": ["Sneakers", "Casual", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect classic look, goes with everything!" },
+      { "rating": 3, "comment": "Comfortable but scuffs easily." }
+    ],
+    "product_img": "https://i.imgur.com/TfU3d2f.jpeg"
+  },
+  {
+    "id": 5,
+    "name": "Adventure Strap Sandal",
+    "summary": "Durable outdoor sandal with adjustable straps",
+    "description": "Three-point adjustment system ensures perfect fit. Features quick-dry webbing, antimicrobial footbed, and rugged outsole for various terrain.",
+    "price": 69.99,
+    "category": ["Sandals", "Outdoor", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Survived a week-long camping trip. Very durable!" },
+      { "rating": 4, "comment": "Great for hiking and water activities." }
+    ],
+    "product_img": "https://i.imgur.com/wY2xA9G.jpeg"
+  },
+  {
+    "id": 6,
+    "name": "Comfort Slide Sandal",
+    "summary": "Cushioned slide sandal for everyday wear",
+    "description": "Features contoured footbed with arch support, soft foam midsole, and water-resistant construction. Perfect for pool or casual wear.",
+    "price": 34.99,
+    "category": ["Sandals", "Casual", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Most comfortable slides I've ever owned!" },
+      { "rating": 4, "comment": "Great pool shoes but size runs small." }
+    ],
+    "product_img": "https://i.imgur.com/DqtbNjd.jpeg"
+  },
+  {
+    "id": 7,
+    "name": "Marathon Pro",
+    "summary": "Professional-grade running shoe for serious athletes",
+    "description": "Features responsive foam cushioning, carbon fiber plate, and engineered mesh upper. Designed for maximum performance in long-distance running.",
+    "price": 179.99,
+    "category": ["Sport Shoes", "Running", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Shaved 5 minutes off my marathon time!" },
+      { "rating": 4, "comment": "Great for races but expensive." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 8,
+    "name": "Court Dominator",
+    "summary": "High-performance tennis shoe",
+    "description": "Designed for quick lateral movements with reinforced sides and herringbone traction pattern. Features cushioned midsole for impact protection.",
+    "price": 129.99,
+    "category": ["Sport Shoes", "Tennis", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect grip on court surfaces." },
+      { "rating": 4, "comment": "Supportive but needs breaking in." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 9,
+    "name": "Classic Chelsea Boot",
+    "summary": "Timeless elastic-sided ankle boot",
+    "description": "Crafted from premium leather with elastic side panels and pull tabs. Features Goodyear welt construction and leather soles.",
+    "price": 199.99,
+    "category": ["Boots", "Formal", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "These boots are absolutely beautiful!" },
+      { "rating": 4, "comment": "Great quality but expensive." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 10,
+    "name": "Combat Style Boot",
+    "summary": "Military-inspired casual boot",
+    "description": "Features durable leather upper, speed-lacing system, and cushioned ankle collar. Includes oil-resistant rubber sole.",
+    "price": 149.99,
+    "category": ["Boots", "Casual", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "These boots are built to last forever." },
+      { "rating": 4, "comment": "Look great but heavy." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 11,
+    "name": "Alpine Explorer",
+    "summary": "Waterproof hiking boot for serious trails",
+    "description": "Features Gore-Tex waterproof membrane, Vibram sole, and reinforced toe cap. Designed for challenging terrain and heavy loads.",
+    "price": 219.99,
+    "category": ["Hiking Boots", "Outdoor", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Conquered Mount Whitney in these!" },
+      { "rating": 4, "comment": "Very durable but heavy." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 12,
+    "name": "Trail Scout Light",
+    "summary": "Lightweight hiking boot for day hikes",
+    "description": "Combines synthetic and mesh upper for breathability with waterproof membrane. Features EVA midsole and aggressive tread pattern.",
+    "price": 139.99,
+    "category": ["Hiking Boots", "Outdoor", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect for day hikes!" },
+      { "rating": 4, "comment": "Good grip but not fully waterproof." }
+    ],
+    "product_img": "https://i.imgur.com/0ztZpbL.jpeg"
+  },
+  {
+    "id": 13,
+    "name": "Beach Comfort Plus",
+    "summary": "Premium cushioned flip flops",
+    "description": "Features extra-thick EVA foam sole, soft fabric strap, and textured footbed. Perfect for beach and casual wear.",
+    "price": 29.99,
+    "category": ["Flip Flops", "Casual", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Like walking on clouds!" },
+      { "rating": 4, "comment": "Very comfortable but strap loosens over time." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 14,
+    "name": "Surfer's Choice",
+    "summary": "Durable rubber flip flops",
+    "description": "Made from natural rubber with textured sole for grip. Features quick-dry construction and anti-slip footbed.",
+    "price": 24.99,
+    "category": ["Flip Flops", "Beach", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect beach flip flops!" },
+      { "rating": 4, "comment": "Great grip but runs small." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 15,
+    "name": "Maritime Classic",
+    "summary": "Traditional leather boat shoe",
+    "description": "Hand-sewn moccasin construction with genuine leather upper. Features non-marking rubber sole and rust-resistant eyelets.",
+    "price": 119.99,
+    "category": ["Boat Shoes", "Casual", "Men's"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect summer shoe!" },
+      { "rating": 4, "comment": "Classic look but needs breaking in." }
+    ],
+    "product_img": "https://i.imgur.com/RgMtePA.png"
+  },
+  {
+    "id": 16,
+    "name": "Coastal Canvas",
+    "summary": "Casual canvas boat shoe",
+    "description": "Lightweight canvas upper with traditional boat shoe styling. Features memory foam insole and striped rubber outsole.",
+    "price": 59.99,
+    "category": ["Boat Shoes", "Casual", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "So comfortable right out of the box!" },
+      { "rating": 4, "comment": "Great casual shoe but not very durable." }
+    ],
+    "product_img": "https://i.imgur.com/G4GjizX.jpeg"
+  },
+  {
+    "id": 17,
+    "name": "Professional Chef Clog",
+    "summary": "Kitchen-ready professional clog",
+    "description": "Features slip-resistant sole, waterproof construction, and removable cushioned insole. Designed for long hours of standing.",
+    "price": 89.99,
+    "category": ["Clogs", "Professional", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect for 12-hour kitchen shifts!" },
+      { "rating": 4, "comment": "Very comfortable but runs wide." }
+    ],
+    "product_img": "https://i.imgur.com/MzQ5TrI.jpeg"
+  },
+  {
+    "id": 18,
+    "name": "Garden Comfort Clog",
+    "summary": "Waterproof garden clog",
+    "description": "Made from easy-clean synthetic material with removable liner. Features aggressive tread pattern and heel strap.",
+    "price": 39.99,
+    "category": ["Clogs", "Casual", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect gardening shoes!" },
+      { "rating": 4, "comment": "Easy to clean but runs small." }
+    ],
+    "product_img": "https://i.imgur.com/jgjPHtW.jpeg"
+  },
+  {
+    "id": 19,
+    "name": "Aqua Grip Pro",
+    "summary": "Professional water sport shoe",
+    "description": "Quick-dry mesh upper with reinforced toe cap. Features drainage ports and special grip sole for wet surfaces.",
+    "price": 69.99,
+    "category": ["Water Shoes", "Sport", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Perfect for kayaking and rafting!" },
+      { "rating": 4, "comment": "Great grip but takes time to dry." }
+    ],
+    "product_img": ""
+  },
+  {
+    "id": 20,
+    "name": "Beach Walker",
+    "summary": "Lightweight water shoe for casual use",
+    "description": "Minimal design with flexible mesh upper and protective rubber sole. Perfect for beach walking and light water activities.",
+    "price": 29.99,
+    "category": ["Water Shoes", "Casual", "Unisex"],
+    "availability": 0,
+    "reviews": [
+      { "rating": 5, "comment": "Great for beach walks!" },
+      { "rating": 4, "comment": "Comfortable but sand gets trapped inside." }
+    ],
+    "product_img": "https://i.imgur.com/MBD86WA.jpeg"
+  }
+]

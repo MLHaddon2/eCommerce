@@ -61,7 +61,7 @@ const BrowseProducts = () => {
               {product.summary}
             </Card.Text>
             <div className="mt-auto">
-              <p className="h5 mb-3">${product.price.toFixed(2)}</p>
+              <p className="h5 mb-3">${product.price}</p>
               <div className="d-flex gap-2">
                 <Link 
                   to={`/product/${product.id}`} 

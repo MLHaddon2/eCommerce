@@ -49,7 +49,7 @@ function Cart() {
                 {cartItems.map((item) => (
                   <tr key={item.id}>
                     <td>{item.name}</td>
-                    <td>${item.price.toFixed(2)}</td>
+                    <td>${item.price}</td>
                     <td>
                       <Form.Control
                         type="number"

@@ -21,13 +21,14 @@
   },
   "name": "ecommerce",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "server": "nodemon server.js",
+    "dev": "concurrently \"npm run index\" \"npm run client\"",
+    "server": "nodemon index.js",
     "client": "cd client && npm start",
     "build": "cd client && npm run build",
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",

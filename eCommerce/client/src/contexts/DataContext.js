@@ -603,6 +603,37 @@ export const DataProvider = ({ children }) => {
     }
   }, [ipHistory]);
 
+  // Checks that all local state arrays are populated and logs a summary report
+  const localDataCheck = useCallback(() => {
+    const checks = {
+      products:     { count: products.length,     loaded: products.length > 0 },
+      customers:    { count: customers.length,    loaded: customers.length > 0 },
+      transactions: { count: transactions.length, loaded: transactions.length > 0 },
+      orders:       { count: orders.length,       loaded: orders.length > 0 },
+      ipHistories:  { count: ipHistories.length,  loaded: ipHistories.length > 0 },
+    };
+
+    const allLoaded = Object.values(checks).every(c => c.loaded);
+    const anyErrors = Object.values(errors).some(e => e !== null);
+
+    console.group('📋 LocalDataCheck Report');
+    Object.entries(checks).forEach(([key, { count, loaded }]) => {
+      const icon = loaded ? '✅' : '⚠️';
+      console.log(`${icon} ${key}: ${count} record(s) ${loaded ? 'loaded' : 'EMPTY'}`);
+    });
+    if (anyErrors) {
+      console.group('❌ Active Errors');
+      Object.entries(errors).forEach(([key, err]) => {
+        if (err) console.warn(`  ${key}:`, err);
+      });
+      console.groupEnd();
+    }
+    console.log(allLoaded && !anyErrors ? '✅ All data loaded successfully.' : '⚠️ Some data is missing or has errors.');
+    console.groupEnd();
+
+    return { checks, allLoaded, anyErrors };
+  }, [products, customers, transactions, orders, ipHistories, errors]);
+
   // Initialize all data
   const initializeData = useCallback(async () => {
     try {
@@ -743,6 +774,7 @@ export const DataProvider = ({ children }) => {
         // Utility actions
         initializeData,
         clearData,
+        localDataCheck,
         refreshProducts,
         refreshCustomers,
         refreshTransactions,

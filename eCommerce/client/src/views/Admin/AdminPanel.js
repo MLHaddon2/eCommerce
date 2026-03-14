@@ -60,7 +60,10 @@ const AdminPanel = () => {
   const handleEditProduct = (product) => {
     setCurrentProduct({
       ...product,
-      category: Array.isArray(product.category) ? product.category : []
+      category: Array.isArray(product.category) ? product.category : [],
+      reviews: Array.isArray(product.reviews)
+        ? product.reviews
+        : (() => { try { return JSON.parse(product.reviews); } catch { return []; } })()
     });
     setShowProductModal(true);
   };
@@ -204,7 +207,7 @@ const AdminPanel = () => {
                         <td>{product.name}</td>
                         <td>{product.summary}</td>
                         <td>{product.description}</td>
-                        <td>${product.price?.toFixed(2) || '0.00'}</td>
+                        <td>${product.price || '0.00'}</td>
                         <td>
                           <div style={{ 
                             maxHeight: '200px', 
@@ -212,17 +215,22 @@ const AdminPanel = () => {
                             position: 'relative',
                             width: '100%' 
                           }}>
-                            {product.reviews && product.reviews.length > 0 ? 
-                              product.reviews.map((review, index) => (
-                                <div key={index} style={{ 
-                                  borderBottom: '1px solid #dee2e6', 
-                                  padding: '8px'
-                                }}>
-                                  <strong>Rating: </strong>{review.rating}<br/>
-                                  <strong>Comment: </strong>{review.comment}
-                                </div>
-                              )) : "No Reviews"
-                            }
+                            {(() => {
+                              const reviews = Array.isArray(product.reviews)
+                                ? product.reviews
+                                : (() => { try { return JSON.parse(product.reviews); } catch { return []; } })();
+                              return reviews.length > 0
+                                ? reviews.map((review, index) => (
+                                    <div key={index} style={{ 
+                                      borderBottom: '1px solid #dee2e6', 
+                                      padding: '8px'
+                                    }}>
+                                      <strong>Rating: </strong>{review.rating}<br/>
+                                      <strong>Comment: </strong>{review.comment}
+                                    </div>
+                                  ))
+                                : "No Reviews";
+                            })()}
                           </div>
                         </td>
                         <td>{product.availability}</td>
