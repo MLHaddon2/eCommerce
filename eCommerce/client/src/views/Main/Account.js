@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Table } from 'react-bootstrap';
 import { useData } from '../../contexts/DataContext.js';
 
+// TODO: Implement cookies.
+
 function Account() {
   const { customer, getCustomer, updateCustomer, orders, getOrders } = useData();
 
@@ -19,7 +21,8 @@ function Account() {
   const handleSubmit = async (e) => {
     try {
       e.preventDefault();
-      await updateCustomer(customer.id, user);
+      const id = localStorage.getItem('user_id');
+      await updateCustomer(id, user);
     } catch (error) {
       console.error(error);
     }
@@ -29,7 +32,6 @@ function Account() {
     try {
       setIsLoading(true);
       setError(null);
-      
       const id = localStorage.getItem('user_id');
       if (!id) {
         throw new Error('No user ID found in localStorage');

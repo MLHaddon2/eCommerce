@@ -10,8 +10,6 @@ import { useCart } from "../../contexts/CartContext";
 import { ShoppingCart, X } from 'lucide-react';
 import axios from '../../api/axios.js';
 
-//! TODO: Add browsing capability to non-logged-in users.
-//! TODO: Connect the cart preview to the iphistories in the database.
 // !- When a user logs in, check for cart items in their last login and apply them to the current iphistory.
 
 // Ad Component for reusability
@@ -30,7 +28,7 @@ const AdSpace = ({ adId, className = "", style = {}, children }) => (
     }}
   >
     {children || (
-      <small className="text-muted">Ad Space - {adId}</small>
+      <small className="text-muted"> - Ad Space - {adId}</small>
     )}
   </div>
 );
