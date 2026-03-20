@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Row, Tabs, Tab } from 'react-bootstrap';
 import { useData } from '../../contexts/DataContext.js';
-import ProductCard from '../../components/ProductCard.js';
+import ProductCard from '../../components/ProductCard';
 
 // FIXED:
 // - Replaced the locally-defined ProductCard (which was re-created on every render

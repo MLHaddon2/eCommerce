@@ -8,13 +8,7 @@ import {
   clearAuthCookies,
 } from '../Utils/cookieUtils';
 
-// FIXED:
-// - Removed client-side IP fetch from logout(). Previously the browser fetched its
-//   own IP via the proxy endpoint and embedded it in the POST URL. The server already
-//   knows the client IP from req.ip / X-Forwarded-For — no need to round-trip it
-//   through the client. The cart save now uses a clean POST body instead.
-//   Update your backend to add: POST /api/cart/save-on-logout
-//   which reads req.ip itself and saves cartItems from req.body.
+// TODO: Get rid of all the local storage
 
 const AuthContext = createContext(null);
 
@@ -80,11 +74,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Save current cart before logging out.
-      // FIXED: IP address is no longer fetched client-side and embedded in the URL.
-      // The backend reads req.ip / X-Forwarded-For directly from the request.
-      await axios.post('api/cart/save-on-logout', {
-        cartItems: cartItems,
+      // Save current cart to IP history before logging out
+      const ipResponse = await axios.get('proxy');
+      const ipAddress = ipResponse.data.ip;
+
+      await axios.post(`api/cart/update/0000/${ipAddress}`, {
+        cartItems: cartItems
       });
     } catch (error) {
       console.error('Logout error:', error);

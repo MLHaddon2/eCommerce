@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
-import { useCart } from '../../contexts/CartContext.js';
+import { useCart } from '../../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
-import axios from '../../api/axios.js'; // FIXED: was importing from 'axios' directly, bypassing interceptors
+import axios from '../../api/axios'; // FIXED: was importing from 'axios' directly, bypassing interceptors
 import SquarePaymentForm from '../../components/SquarePaymentForm.js';
 import CreditCardForm from '../../components/CreditCardForm.js';
 

@@ -1,7 +1,7 @@
 import "bootstrap/dist/css/bootstrap.css";
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import Home from "./views/Main/Home.js";
+import Home from "./views/Main/Home";
 import Login from "./views/Main/Login.js";
 import Signup from "./views/Main/Signup.js";
 import Header from "./views/Main/Header.js";
