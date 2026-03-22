@@ -15,6 +15,7 @@ import RequestTest from './views/Tests/RequestTest.js';
 import { AuthProvider } from './contexts/AuthContext.js';
 import { DataProvider } from './contexts/DataContext.js';
 import { CartProvider } from './contexts/CartContext.js';
+import { SavedCardsProvider } from "./contexts/SavedCardsContext.js";
 
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
     <DataProvider>
     <CartProvider>
     <AuthProvider>
+    <SavedCardsProvider>
       <div className="App">
           <Header />
           <Routes>
@@ -69,6 +71,7 @@ function App() {
           </div>
         </footer>
       </div>
+    </SavedCardsProvider>
     </AuthProvider>
     </CartProvider>
     </DataProvider>

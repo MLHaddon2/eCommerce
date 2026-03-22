@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import axios from '../api/axios';
 import { useAuth } from './AuthContext';
+import { useEffect } from 'react';
 
 /**
  * SavedCardsContext
@@ -18,10 +19,21 @@ const SavedCardsContext = createContext(null);
 
 export const SavedCardsProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
-
   const [savedCards, setSavedCards] = useState([]);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState(null);
+
+
+  //─── UseEffect ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+  if (isAuthenticated) {
+    fetchSavedCards();
+  } else {
+    clearSavedCards();
+  }
+  }, [isAuthenticated]);
+
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
 
@@ -171,8 +183,8 @@ export const SavedCardsProvider = ({ children }) => {
 };
 
 export const useSavedCards = () => {
-  const ctx = useContext(SavedCardsContext);
-  if (!ctx) throw new Error('useSavedCards must be used within a SavedCardsProvider');
-  return ctx;
+  const context = useContext(SavedCardsContext);
+  if (!context) throw new Error('useSavedCards must be used within a SavedCardsProvider');
+  return context;
 };
 
