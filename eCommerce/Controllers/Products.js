@@ -1,5 +1,7 @@
 import Product from '../models/productModel.js';
 
+// TODO: Fix the json return value from products
+
 export const getMostRecentProducts = async (req, res) => {
   try {
     const lastID = await Products.max('id');
@@ -22,6 +24,14 @@ export const getProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     };
+    // Parse reviews if it comes back as a string
+    product.reviews = typeof product.reviews === 'string' 
+      ? JSON.parse(product.reviews) 
+      : product.reviews;
+    product.category = typeof product.category === 'string'
+      ? JSON.parse(product.category)
+      : product.category;
+    product.price = Number(product.price);
     res.status(200).json({message: "Product found successfully: ", product});
   } catch (error) {
     console.error('Error in getProduct:', error);
@@ -35,6 +45,16 @@ export const getProducts = async (req, res) => {
     if (!products || products.length === 0) {
       return res.status(404).json({ message: "No products found" });
     };
+    for await (const product of products) { 
+      // Parse reviews if it comes back as a string
+      product.reviews = typeof product.reviews === 'string' 
+        ? JSON.parse(product.reviews) 
+        : product.reviews;
+      product.category = typeof product.category === 'string'
+        ? JSON.parse(product.category)
+        : product.category;
+      product.price = Number(product.price);
+     }
     res.status(200).json(products);
   } catch (error) {
     console.error('Error in getProducts:', error);

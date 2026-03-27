@@ -10,6 +10,7 @@ import { useCart } from '../../contexts/CartContext';
 //   Previously divided by reviews.length when it could be 0, producing NaN
 //   which crashed .toFixed() and renderStars(Math.round(NaN)).
 
+
 const ProductPage = () => {
   const { id } = useParams();
   const { product, getProduct } = useData();

@@ -3,6 +3,8 @@ import { Container, Tabs, Tab, Card, Table, Button, Form, Modal } from 'react-bo
 import { PlusCircle, Edit, Trash, User, Clock, Globe, CreditCard } from 'lucide-react';
 import { useData } from '../../contexts/DataContext.js';
 
+// TODO: 
+
 const AdminPanel = () => {
   // Data from context - consistent approach for all data types
   const { 
@@ -47,7 +49,6 @@ const AdminPanel = () => {
         // Add new product
         await createProduct(currentProduct);
       }
-      
       // Refresh products data
       await getProducts();
       setShowProductModal(false);
@@ -155,16 +156,14 @@ const AdminPanel = () => {
         localDataCheck();
       } catch (error) {
         console.error("Error initializing data:", error);
-      }
+      };
     };
-    
     initializeData();
   }, []);
   
   return (
     <Container fluid className="p-4">
       <h1 className="mb-4">E-Commerce Admin Panel</h1>
-      
       <Tabs defaultActiveKey="products" className="mb-3">
         {/* Products Tab */}
         <Tab eventKey="products" title="Products">

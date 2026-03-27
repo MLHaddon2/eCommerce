@@ -6,7 +6,6 @@ const { DataTypes } = Sequelize;
 const IpHistories = db.define('iphistories', {
     ipAddress: {
         type: DataTypes.STRING,
-        unique: true,
         allowNull: false
     },
     lastLogin: {
