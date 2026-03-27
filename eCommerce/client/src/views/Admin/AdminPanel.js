@@ -3,7 +3,7 @@ import { Container, Tabs, Tab, Card, Table, Button, Form, Modal } from 'react-bo
 import { PlusCircle, Edit, Trash, User, Clock, Globe, CreditCard } from 'lucide-react';
 import { useData } from '../../contexts/DataContext.js';
 
-// TODO: 
+// TODO: DONT ALLOW ACCESS TO THE ADMIN PANEL WITHOUT BEING LOGGED IN AS ADMIN
 
 const AdminPanel = () => {
   // Data from context - consistent approach for all data types
@@ -44,7 +44,7 @@ const AdminPanel = () => {
     try {
       if (currentProduct.id) {
         // Edit existing product
-        await updateProduct(currentProduct);
+        await updateProduct(currentProduct.id, currentProduct);
       } else {
         // Add new product
         await createProduct(currentProduct);

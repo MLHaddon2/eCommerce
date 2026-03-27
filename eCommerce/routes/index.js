@@ -5,7 +5,7 @@ import { getCustomer, getCustomers, createCustomer, updateCustomer, deleteCustom
 import { getTransactions, getTransaction, createTransaction, updateTransaction, deleteTransaction } from '../Controllers/Transactions.js';
 import { getOrders, getOrder, createOrder, updateOrder, deleteOrder } from '../Controllers/Orders.js';
 import { updateCartItems, deleteCartItem, getCartItems } from '../Controllers/Cart.js';
-import { getIpHistory, getIpHistories, createIpHistory, updateIpHistory, deleteIpHistory } from '../Controllers/IpHistory.js';
+import { getIpHistory, getIpHistories, createIpHistory, updateIpHistory } from '../Controllers/IpHistory.js';
 import { initializeSquareClient, getPayment, updatePayment, cancelPayment, completePayment, createPayment, refundPayment, listPayments } from '../middleware/SquareAPI.js';
 import { refreshToken } from '../Controllers/RefreshToken.js';
 import { verifyToken } from '../middleware/VerifyToken.js';
@@ -78,7 +78,7 @@ router.get('/ip-history', getIpHistories);
 router.post('/ip-history/create', createIpHistory);
 router.get('/ip-history/:ipAddress', getIpHistory);
 router.put('/ip-history/update/:ipAddress', updateIpHistory);
-router.delete('/ip-history/delete/:ipAddress', deleteIpHistory);
+// router.delete('/ip-history/delete/:ipAddress', deleteIpHistory);
 
 // Saved Cards — all routes require a valid session via verifyToken
 router.get('/user/saved-cards', verifyToken, getSavedCards);

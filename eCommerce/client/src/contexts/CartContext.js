@@ -13,7 +13,7 @@ export const CartProvider = ({ children }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { deleteIpHistory, updateIpHistory, createIpHistory, getIpHistory, getIpHistories } = useData();
+  const { updateIpHistory, createIpHistory, getIpHistory, getIpHistories } = useData();
 
   // Update localStorage whenever cart changes
   useEffect(() => {
@@ -66,14 +66,9 @@ export const CartProvider = ({ children }) => {
   };
  
   const removeFromCart = async (productId) => {
+    try {
       const newCartItems = cartItems.filter(item => item.id !== productId);
       setCartItems(newCartItems);
-      
-      try {
-          const ipResponse = await axios.get('proxy');
-          const ipAddress = ipResponse.data.ip;
-          
-          await deleteIpHistory(ipAddress);
       } catch (error) {
           console.error('Error removing product from cart:', error);
       }

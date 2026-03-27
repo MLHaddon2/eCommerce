@@ -62,16 +62,16 @@ export const updateIpHistory = async (req, res) => {
     }
 };
 
-export const deleteIpHistory = async (req, res) => {
-    try {
-        const ipHistory = await IpHistories.destroy({
-            where: {ipAddress: req.params.ipAddress}
-        });
-        if (!ipHistory) {
-            return res.status(404).json({message: "Ip History not deleted"});
-        }
-        res.status(200).json(ipHistory);
-    } catch (error) {
-        res.status(500).json({message: "Internal Server Error deleting ip history", error });
-    }
-};
+// export const deleteIpHistory = async (req, res) => {
+//     try {
+//         const ipHistory = await IpHistories.destroy({
+//             where: {ipAddress: req.params.ipAddress}
+//         });
+//         if (!ipHistory) {
+//             return res.status(404).json({message: "Ip History not deleted"});
+//         }
+//         res.status(200).json(ipHistory);
+//     } catch (error) {
+//         res.status(500).json({message: "Internal Server Error deleting ip history", error });
+//     }
+// };

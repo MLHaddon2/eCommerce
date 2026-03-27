@@ -592,11 +592,11 @@ export const DataProvider = ({ children }) => {
         setIpHistories(prev => prev.filter(ip => ip.id !== id));
         if (ipHistory && ipHistory.id === id) {
           setIpHistory(null);
-        }
+        };
         return true;
       } else {
         throw new Error('Failed to delete IP history');
-      }
+      };
     } catch (error) {
       const errorMessage = handleApiError(error, 'deleting IP history');
       throw new Error(errorMessage);

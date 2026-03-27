@@ -66,7 +66,10 @@ export const getProducts = async (req, res) => {
 export const createProduct = async (req, res) => {
   try {
     const { name, summary, description, reviews, availability, price, category, product_img } = req.body;
-    if (!name || !summary || !description || !reviews || !availability || !price || !category) {
+
+    const isDefined = (val) => val !== undefined && val !== null;
+
+    if (!name || !summary || !description || !reviews || !isDefined(availability) || !isDefined(price) || !category) {
       return res.status(400).json({ message: "All fields are required" });
     };
     const product = await Product.create({
@@ -77,12 +80,12 @@ export const createProduct = async (req, res) => {
       availability,
       price,
       category,
-      product_img: product_img || ''
+      product_img: product_img || ""
     });
     res.status(200).json({message: "Product created successfully: ", product});
   } catch (error) {
     console.error('Error in createProducts:', error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Internal server error", error });
   };
 };
 
@@ -110,8 +113,11 @@ export const updateProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     };
+
+    const isDefined = (val) => val !== undefined && val !== null;
+
     const { name, summary, description, reviews, availability, price, category, product_img } = req.body;
-    if (!name || !summary || !description || !reviews || !availability || !price || !category || !product_img) {
+    if (!name || !summary || !description || !reviews || !isDefined(availability) || !isDefined(price) || !category) {
       return res.status(400).json({ message: "All fields are required" });
     };
     await Product.update({
@@ -122,7 +128,7 @@ export const updateProduct = async (req, res) => {
       availability,
       price,
       category,
-      product_img
+      product_img: product_img || ""
     }, {
       where: {id: req.params.id}
     });
