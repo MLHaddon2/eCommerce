@@ -1,18 +1,21 @@
 import Product from '../models/productModel.js';
 
-// TODO: Fix the json return value from products
+const handleError = (res, context, error) => {
+  console.error(context, error);
+  return res.status(500).json({
+    message: `${context} failed`,
+    error: error?.message || String(error)
+  });
+};
 
 export const getMostRecentProducts = async (req, res) => {
   try {
-    const lastID = await Products.max('id');
-    const products = await Products.findOne({
-      where: {id: lastID}
-    });
-    res.json(products);
+    const lastID = await Product.max('id');
+    const product = await Product.findOne({ where: { id: lastID } });
+    if (!product) return res.status(404).json({ message: 'No product found' });
+    return res.status(200).json(product);
   } catch (error) {
-    console.error('Error in getProducts:', error);
-    res.status(500).json({ message: "Internal server error" });
-    // Error check for more than ONE json
+    return handleError(res, 'Get most recent product', error);
   }
 };
 

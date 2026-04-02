@@ -1,77 +1,97 @@
-const SignupForm = ({ inputs, handleChange, handleSubmit }) => {
+const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => {
   return (
     <form onSubmit={handleSubmit}>
       <h3>Signup</h3>
       <div className="form-group">
-          <input 
-            type="text" 
+          <input
+            type="text"
             name="firstName"
-            className="form-control" 
-            autoComplete="First Name"
+            className="form-control"
+            autoComplete="given-name"
             onChange={handleChange}
-            placeholder= {inputs.firstName || "First Name"}
+            value={inputs.firstName}
+            placeholder="First Name"
+            required
           />
       </div>
       <div className="form-group">
-          <input 
-            type="text" 
+          <input
+            type="text"
             name="lastName"
-            className="form-control" 
-            autoComplete="Last Name"
+            className="form-control"
+            autoComplete="family-name"
             onChange={handleChange}
-            placeholder= {inputs.lastName || "Last Name"}
+            value={inputs.lastName}
+            placeholder="Last Name"
+            required
           />
       </div>
       <div className="form-group">
-          <input 
-            type="text" 
+          <input
+            type="text"
             name="address"
-            className="form-control" 
-            autoComplete="Address"
+            className="form-control"
+            autoComplete="address"
             onChange={handleChange}
-            placeholder= {inputs.address || "Address"}
+            value={inputs.address}
+            placeholder="Address"
           />
       </div>
       <div className="form-group">
-          <input 
-            type="text" 
+          <input
+            type="text"
             name="username"
-            className="form-control" 
+            className="form-control"
             autoComplete="username"
             onChange={handleChange}
-            placeholder= {inputs.username || "Username"}
+            value={inputs.username}
+            placeholder="Username"
+            required
           />
       </div>
       <div className="form-group">
-          <input 
-            type="email" 
+          <input
+            type="email"
             name="email"
-            className="form-control" 
+            className="form-control"
             autoComplete="email"
             onChange={handleChange}
-            placeholder={inputs.email || "Email :Fake emails are fine"} 
+            value={inputs.email}
+            placeholder="Email"
+            required
           />
       </div>
       <div className="form-group">
-          <input 
-            type="password" 
+          <input
+            type="password"
             name="password"
             className="form-control"
-            autoComplete="password"
-            onChange={handleChange} 
-            placeholder={inputs.password || "Password"}
+            autoComplete="new-password"
+            onChange={handleChange}
+            value={inputs.password}
+            placeholder="Password"
+            required
           />
       </div>
       <div className="form-group">
-          <input 
-            type="password" 
+          <input
+            type="password"
             name="confPwd"
             className="form-control"
-            onChange={handleChange} 
-            placeholder={inputs.confPwd || "Confirm Password"}
+            autoComplete="new-password"
+            onChange={handleChange}
+            value={inputs.confPwd}
+            placeholder="Confirm Password"
+            required
           />
       </div>
-      <button type="submit" className="btn btn-dark btn-lg btn-block">Submit</button>
+      <button
+        type="submit"
+        className="btn btn-dark btn-lg btn-block"
+        disabled={loading}
+      >
+        {loading ? 'Creating Account...' : 'Submit'}
+      </button>
     </form>
   );
 };

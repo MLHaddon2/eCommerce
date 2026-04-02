@@ -1,5 +1,13 @@
 import Transactions from "../models/transactionModel.js";
 
+const handleError = (res, context, error) => {
+  console.error(context, error);
+  return res.status(500).json({
+    message: `${context} failed`,
+    error: error?.message || String(error),
+  });
+};
+
 export const getTransactions = async (req, res) => {
   try {
     const transactions = await Transactions.findAll({
@@ -7,8 +15,7 @@ export const getTransactions = async (req, res) => {
     });
     res.json(transactions);
   } catch (error) {
-    console.error('Error in getTransactions:', error);
-    res.status(500).json({ message: "Internal server error getting ALL transactions", error });
+    return handleError(res, 'Get all transactions', error);
   }
 };
 
@@ -21,8 +28,7 @@ export const getTransaction = async (req, res) => {
     if (!transaction) return res.status(404).json({ message: "Transaction not found" });
     res.json(transaction);
   } catch (error) {
-    console.error('Error in getTransaction:', error);
-    res.status(500).json({ message: "Internal server error getting transaction", error });
+    return handleError(res, 'Get transaction', error);
   }
 };
 
@@ -41,8 +47,7 @@ export const createTransaction = async (req, res) => {
     });
     res.status(200).json(transaction);
   } catch (error) {
-    console.error('Error in createTransaction:', error);
-    res.status(500).json({ message: "Internal server error creating transaction", error });
+    return handleError(res, 'Create transaction', error);
   }
 };
 
@@ -66,8 +71,7 @@ export const updateTransaction = async (req, res) => {
     });
     res.status(200).json({message: 'Transaction updated successfully', updatedTransaction});
   } catch (error) {
-    console.error('Error in updateTransaction:', error);
-    res.status(500).json({ message: "Internal server error updating transaction", error });
+    return handleError(res, 'Update transaction', error);
   }
 };
 
@@ -80,7 +84,6 @@ export const deleteTransaction = async (req, res) => {
     await transaction.destroy();
     res.status(200).json({ message: "Transaction deleted successfully" });
   } catch (error) {
-    console.error('Error in deleteTransaction:', error);
-    res.status(500).json({ message: "Internal server error deleting transaction", error });
+    return handleError(res, 'Delete transaction', error);
   }
 };

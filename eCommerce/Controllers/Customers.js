@@ -1,14 +1,21 @@
 import Customers from "../models/customerModel.js";
 
+const handleError = (res, context, error) => {
+  console.error(context, error);
+  return res.status(500).json({
+    message: `${context} failed`,
+    error: error?.message || String(error)
+  });
+};
+
 export const getCustomers = async (req, res) => {
   try {
     const customers = await Customers.findAll({
       attributes: ['id', 'firstName', 'lastName', 'email', 'address', 'cartItems', 'lastLogin', 'ipHistory', 'totalOrders', 'totalSpent']
     });
-    res.json(customers);
+    return res.status(200).json(customers);
   } catch (error) {
-    console.error('Error in getCustomers:', error);
-    res.status(500).json({ message: "Internal server error" });
+    return handleError(res, 'Get customers', error);
   }
 };
 
@@ -20,8 +27,7 @@ export const getCustomer = async (req, res) => {
     if (!customer) return res.status(404).json({ message: "Customer not found" });
     res.status(200).json({message: "Customer found", customer});
   } catch (error) {
-    console.error('Error in getCustomer:', error);
-    res.status(500).json({ message: "Internal server error" });
+    return handleError(res, 'Get customer', error);
   }
 };
 
@@ -43,8 +49,7 @@ export const createCustomer = async (req, res) => {
 
     res.status(201).json({ message: "Customer created successfully", customer });
   } catch (error) {
-    console.error('Error in Customer creation: ', error);
-    res.status(500).json({ message: "Error creating customer", error });
+    return handleError(res, 'Create customer', error);
   }
 };
 
@@ -73,8 +78,7 @@ export const updateCustomer = async (req, res) => {
     const updatedCustomer = await Customers.update(updateData, { where: { id } });
     res.status(200).json({ message: "Customer updated successfully", updatedCustomer });
   } catch (error) {
-    console.error('Error in Customer update: ', error);
-    res.status(500).json({ message: "Error updating customer", error });
+    return handleError(res, 'Update customer', error);
   }
 };
 
@@ -90,7 +94,6 @@ export const deleteCustomer = async (req, res) => {
     });
     res.status(200).json({ message: "Customer deleted successfully" });
   } catch (error) {
-    console.error('Error in Customer deletion: ', error);
-    res.status(500).json ({message: "Internal Server Error Deleting Customer", error});
+    return handleError(res, 'Delete customer', error);
   }
 };

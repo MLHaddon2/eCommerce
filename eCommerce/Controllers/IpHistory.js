@@ -1,17 +1,23 @@
 import IpHistories from '../models/ipHistoryModel.js';
 
+const handleError = (res, context, error) => {
+  console.error(context, error);
+  return res.status(500).json({
+    message: `${context} failed`,
+    error: error?.message || String(error)
+  });
+};
+
 export const getIpHistory = async (req, res) => {
-    try {
-        const ipHistory = await IpHistories.findOne({
-            where: {ipAddress: req.params.ipAddress}
-        });
-        if (!ipHistory) {
-            return res.status(404).json({message: "Ip History not found"});
-        }
-        res.status(200).json(ipHistory);
-    } catch (error) {
-        res.status(500).json({message: "Internal Server Error getting ip history", error });
+  try {
+    const ipHistory = await IpHistories.findOne({ where: { ipAddress: req.params.ipAddress } });
+    if (!ipHistory) {
+      return res.status(404).json({ message: 'IP history not found' });
     }
+    return res.status(200).json(ipHistory);
+  } catch (error) {
+    return handleError(res, 'Get IP history', error);
+  }
 };
 
 export const getIpHistories = async (req, res) => {
@@ -22,7 +28,7 @@ export const getIpHistories = async (req, res) => {
         }
         res.status(200).json(ipHistories);
     } catch (error) {
-        res.status(500).json({message: "Internal Server Error getting ip histories", error });
+        return handleError(res, 'Get IP histories', error);
     }
 };
 
@@ -36,7 +42,7 @@ export const createIpHistory = async (req, res) => {
         });
         res.status(201).json(ipHistory);
     } catch (error) {
-        res.status(500).json({ message: "Internal Server Error creating ip history", error });
+        return handleError(res, 'Create IP history', error);
     }
 };
 
@@ -58,7 +64,7 @@ export const updateIpHistory = async (req, res) => {
         }
         res.status(200).json({message: "IPHistory Updated successfully.", affectedCount});
     } catch (error) {
-        res.status(500).json({message: "Internal Server Error updating ip history", error });
+        return handleError(res, 'Update IP history', error);
     }
 };
 

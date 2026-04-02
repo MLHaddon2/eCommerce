@@ -2,6 +2,14 @@ import Users from '../models/userModel.js';
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+const handleError = (res, context, error) => {
+  console.error(context, error);
+  return res.status(500).json({
+    message: `${context} failed`,
+    error: error?.message || String(error),
+  });
+};
+
 export const getUsers = async (req, res) => {
   try {
     const users = await Users.findAll({
@@ -9,8 +17,7 @@ export const getUsers = async (req, res) => {
     });
     res.json(users);
   } catch (error) {
-    console.error('Error in getUsers:', error);
-    res.status(500).json({ message: "Internal server error" });
+    return handleError(res, 'Get users', error);
   }
 };
 
@@ -26,8 +33,7 @@ export const getUser = async (req, res) => {
     });
     res.json(user);
   } catch (error) {
-    console.error('Error in getUser:', error);
-    res.status(500).json({ message: "Internal server error" });
+    return handleError(res, 'Get user', error);
   }
 };
 
@@ -51,7 +57,7 @@ export const Register = async (req, res) => {
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: '15m' }
     );
-    
+
     const refreshToken = jwt.sign(
       { userID: user.id, username: user.username, email: user.email },
       process.env.REFRESH_TOKEN_SECRET,
@@ -71,8 +77,7 @@ export const Register = async (req, res) => {
 
     res.status(201).json({ accessToken, userID: user.id, username: user.username });
   } catch (error) {
-    console.error('Error in Register:', error);
-    res.status(500).json({ message: "Error creating user" });
+    return handleError(res, 'Register', error);
   }
 };
 
@@ -118,8 +123,7 @@ export const Login = async (req, res) => {
     const userRes = { id: user.id, username: user.username, email: user.email };
     res.status(200).json({ message: "Login Successful", accessToken, userRes });
   } catch (error) {
-    console.error('Error in Login:', error);
-    res.status(500).json({ message: "Internal server error" });
+    return handleError(res, 'Login', error);
   }
 };
 
@@ -139,7 +143,6 @@ export const Logout = async (req, res) => {
     res.clearCookie('access_token');
     res.sendStatus(200);
   } catch (error) {
-    console.error('Error in Logout:', error);
-    res.status(500).json({ message: "Internal server error" });
+    return handleError(res, 'Logout', error);
   }
 };

@@ -1,14 +1,21 @@
 import Orders from "../models/orderModel.js";
 
+const handleError = (res, context, error) => {
+  console.error(context, error);
+  return res.status(500).json({
+    message: `${context} failed`,
+    error: error?.message || String(error)
+  });
+};
+
 export const getOrders = async (req, res) => {
   try {
     const orders = await Orders.findAll({
       attributes: ['id', 'customerId', 'orderDate', 'orderItems', 'totalAmount', 'shippingAddress', 'paymentMethod', 'orderStatus']
     });
-    res.json(orders);
+    return res.status(200).json(orders);
   } catch (error) {
-    console.error('Error in getOrders:', error);
-    res.status(500).json({ message: "Internal server error getting ALL orders", error });
+    return handleError(res, 'Get orders', error);
   }
 };
 
@@ -21,8 +28,7 @@ export const getOrder = async (req, res) => {
     if (!order) return res.status(404).json({ message: "Order not found" });
     res.json(order);
   } catch (error) {
-    console.error('Error in getOrder:', error);
-    res.status(500).json({ message: "Internal server error getting order", error });
+    return handleError(res, 'Get order', error);
   }
 };
 
@@ -40,8 +46,7 @@ export const createOrder = async (req, res) => {
     });
     res.status(201).json(order);
   } catch (error) {
-    console.error('Error in createOrder:', error);
-    res.status(500).json({ message: "Internal server error creating order", error });
+    return handleError(res, 'Create order', error);
   }
 };
 
@@ -65,8 +70,7 @@ export const updateOrder = async (req, res) => {
     });
     res.status(200).json({ message: "Order updated successfully", updatedOrder });
   } catch (error) {
-    console.error('Error in updateOrder:', error);
-    res.status(500).json({ message: "Internal server error updating order", error });
+    return handleError(res, 'Update order', error);
   }
 };
 
@@ -81,7 +85,6 @@ export const deleteOrder = async (req, res) => {
     });
     res.status(200).json({ message: "Order deleted successfully" });
   } catch (error) {
-    console.error('Error in deleteOrder:', error);
-    res.status(500).json({ message: "Internal server error deleting order", error });
+    return handleError(res, 'Delete order', error);
   }
 };

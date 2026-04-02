@@ -4,7 +4,6 @@ import db from "../config/Database.js";
 // Access the DataTypes object in Sequelize
 const { DataTypes } = Sequelize;
 
-// TODO: Add saved-cards functionality
 
 // Define the users model
 const Users = db.define('users', {

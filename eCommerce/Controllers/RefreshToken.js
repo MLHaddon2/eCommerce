@@ -1,6 +1,14 @@
 import Users from "../models/userModel.js";
 import jwt from 'jsonwebtoken';
 
+const handleError = (res, context, error) => {
+  console.error(context, error);
+  return res.status(500).json({
+    message: `${context} failed`,
+    error: error?.message || String(error),
+  });
+};
+
 export const refreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -23,7 +31,6 @@ export const refreshToken = async (req, res) => {
       res.json({ accessToken });
     });
   } catch (error) {
-    console.error('Error in refreshToken:', error);
-    res.status(500).json({ message: "Internal server error" });
+    return handleError(res, 'Refresh token', error);
   }
 };

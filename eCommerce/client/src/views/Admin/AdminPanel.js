@@ -2,10 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Container, Tabs, Tab, Card, Table, Button, Form, Modal } from 'react-bootstrap';
 import { PlusCircle, Edit, Trash, User, Clock, Globe, CreditCard } from 'lucide-react';
 import { useData } from '../../contexts/DataContext.js';
-
-// TODO: DONT ALLOW ACCESS TO THE ADMIN PANEL WITHOUT BEING LOGGED IN AS ADMIN
+import { useAuth } from '../../contexts/AuthContext.js';
+import { useNavigate } from 'react-router-dom';
 
 const AdminPanel = () => {
+  const { isAuthenticated, username } = useAuth();
+  const navigate = useNavigate();
+
+  // Check if user is authenticated and is admin
+  useEffect(() => {
+    if (!isAuthenticated || username !== 'admin') {
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthenticated, username, navigate]);
+
   // Data from context - consistent approach for all data types
   const { 
     products, 
@@ -159,8 +169,20 @@ const AdminPanel = () => {
       };
     };
     initializeData();
-  }, []);
-  
+  }, [getProducts, getCustomers, getTransactions, getOrders, localDataCheck]);
+
+  // If not authenticated or not admin, don't render the panel
+  if (!isAuthenticated || username !== 'admin') {
+    return (
+      <Container className="mt-4">
+        <div className="text-center">
+          <h2>Access Denied</h2>
+          <p>You must be logged in as an administrator to access this page.</p>
+        </div>
+      </Container>
+    );
+  }
+
   return (
     <Container fluid className="p-4">
       <h1 className="mb-4">E-Commerce Admin Panel</h1>
@@ -237,7 +259,7 @@ const AdminPanel = () => {
                         <td>
                             <img 
                               src={product.product_img}
-                              alt='Image not found'
+                              alt=''
                               style={{ width: '50px', height: '50px', objectFit: 'scale-down' }}
                             />
                         </td>

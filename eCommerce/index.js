@@ -25,6 +25,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
+
+// ── JWT Secret Validation ─────────────────────────────────────────────────────
+// Ensure required secrets are set before starting the server
+const requiredSecrets = ['ACCESS_TOKEN_SECRET', 'REFRESH_TOKEN_SECRET'];
+const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
+
+if (missingSecrets.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingSecrets.join(', ')}`);
+  console.error('Please add these to your .env file.');
+  process.exit(1);
+}
+
 const app = express();
 const port = process.env.PORT || 5001;
 

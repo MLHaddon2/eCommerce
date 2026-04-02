@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import axios from '../api/axios';
 import { useAuth } from './AuthContext';
-import { useEffect } from 'react';
 
 /**
  * SavedCardsContext
@@ -22,17 +21,6 @@ export const SavedCardsProvider = ({ children }) => {
   const [savedCards, setSavedCards] = useState([]);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState(null);
-
-
-  //─── UseEffect ─────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-  if (isAuthenticated) {
-    fetchSavedCards();
-  } else {
-    clearSavedCards();
-  }
-  }, [isAuthenticated]);
 
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
@@ -162,21 +150,53 @@ export const SavedCardsProvider = ({ children }) => {
     setError(null);
   }, []);
 
-  // TODO: Fix the provider
+  useEffect(() => {
+    let isCurrent = true;
+
+    const syncCards = async () => {
+      if (!isCurrent) return;
+
+      if (isAuthenticated) {
+        await fetchSavedCards();
+      } else {
+        clearSavedCards();
+      }
+    };
+
+    syncCards();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isAuthenticated, fetchSavedCards, clearSavedCards]);
+
+  const providerValue = useMemo(
+    () => ({
+      savedCards,
+      defaultCard,
+      loading,
+      error,
+      fetchSavedCards,
+      addSavedCard,
+      removeSavedCard,
+      setDefaultCard,
+      clearSavedCards,
+    }),
+    [
+      savedCards,
+      defaultCard,
+      loading,
+      error,
+      fetchSavedCards,
+      addSavedCard,
+      removeSavedCard,
+      setDefaultCard,
+      clearSavedCards,
+    ]
+  );
+
   return (
-    <SavedCardsContext.Provider
-      value={{
-        savedCards,
-        defaultCard,
-        loading,
-        error,
-        fetchSavedCards,
-        addSavedCard,
-        removeSavedCard,
-        setDefaultCard,
-        clearSavedCards,
-      }}
-    >
+    <SavedCardsContext.Provider value={providerValue}>
       {children}
     </SavedCardsContext.Provider>
   );

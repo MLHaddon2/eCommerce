@@ -1,5 +1,13 @@
 import Customer from '../models/customerModel.js';
 
+const handleError = (res, context, error) => {
+  console.error(context, error);
+  return res.status(500).json({
+    message: `${context} failed`,
+    error: error?.message || String(error),
+  });
+};
+
 /**
  * GET /api/user/saved-cards
  * Returns the saved cards for the authenticated customer.
@@ -15,13 +23,12 @@ export const getSavedCards = async (req, res) => {
 
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
-    };
+    }
 
     const cards = customer.savedCards || [];
     res.status(200).json({ cards });
   } catch (error) {
-    console.error('Error in getSavedCards:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return handleError(res, 'Get saved cards', error);
   }
 };
 
@@ -75,8 +82,7 @@ export const addSavedCard = async (req, res) => {
     await customer.update({ savedCards: updatedCards });
     res.status(201).json({ message: 'Card saved successfully', card: newCard });
   } catch (error) {
-    console.error('Error in addSavedCard:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return handleError(res, 'Add saved card', error);
   }
 };
 
@@ -111,8 +117,7 @@ export const deleteSavedCard = async (req, res) => {
     await customer.update({ savedCards: updatedCards });
     res.status(200).json({ message: 'Card removed successfully', cards: updatedCards });
   } catch (error) {
-    console.error('Error in deleteSavedCard:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return handleError(res, 'Delete saved card', error);
   }
 };
 
@@ -143,7 +148,6 @@ export const setDefaultCard = async (req, res) => {
     await customer.update({ savedCards: updatedCards });
     res.status(200).json({ message: 'Default card updated', cards: updatedCards });
   } catch (error) {
-    console.error('Error in setDefaultCard:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return handleError(res, 'Set default card', error);
   }
 };

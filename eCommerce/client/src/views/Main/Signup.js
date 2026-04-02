@@ -27,6 +27,7 @@ function Signup() {
     confPwd: '',
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -37,9 +38,11 @@ function Signup() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     if (user.password !== user.confPwd) {
       setError('Passwords do not match.');
+      setLoading(false);
       return;
     }
 
@@ -64,11 +67,13 @@ function Signup() {
         totalSpent: 0,
       });
 
-      // Use consistent { token, user } signature matching AuthContext.login()
+      // Use consistent { token, user } signature matching AuthContext.login()  
       login({ token: accessToken, user: { id: userID, username } });
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'An error occurred during signup.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -79,6 +84,7 @@ function Signup() {
         inputs={user}
         handleChange={handleFormChange}
         handleSubmit={handleFormSubmit}
+        loading={loading}
       />
       <p className="text-right">
         Already registered? <Link to="/login">Log in</Link>
