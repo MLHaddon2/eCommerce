@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Container, Row, Tabs, Tab } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Tabs, Tab, Spinner } from 'react-bootstrap';
 import { useData } from '../../contexts/DataContext.js';
 import ProductCard from '../../components/ProductCard';
 
@@ -11,7 +11,13 @@ import ProductCard from '../../components/ProductCard';
 
 const BrowseProducts = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { products } = useData();
+  const { products, getProducts, loading } = useData();
+
+  useEffect(() => {
+    if (products.length === 0) {
+      getProducts().catch((error) => console.error('Error loading products in Browse:', error));
+    }
+  }, [products.length, getProducts]);
 
   const categories = {
     Gender: {
@@ -61,34 +67,46 @@ const BrowseProducts = () => {
         />
       </div>
 
-      <Tabs defaultActiveKey="Shoe Type" className="mb-4">
-        {Object.entries(categories).map(([mainCategory, subcategories]) => (
-          <Tab key={mainCategory} eventKey={mainCategory} title={mainCategory}>
-            <div className="mt-4">
-              {Object.entries(subcategories).map(([subcategory, subcategoryProducts]) => {
-                const filteredProducts = filterBySearch(subcategoryProducts);
-                if (filteredProducts.length === 0) return null;
+      {loading.products ? (
+        <div className="text-center py-5">
+          <Spinner animation="border" role="status" />
+          <div className="mt-3">Loading products...</div>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-5">
+          <h4>No products available yet.</h4>
+          <p className="text-muted">Please check back later or refresh the page.</p>
+        </div>
+      ) : (
+        <Tabs defaultActiveKey="Shoe Type" className="mb-4">
+          {Object.entries(categories).map(([mainCategory, subcategories]) => (
+            <Tab key={mainCategory} eventKey={mainCategory} title={mainCategory}>
+              <div className="mt-4">
+                {Object.entries(subcategories).map(([subcategory, subcategoryProducts]) => {
+                  const filteredProducts = filterBySearch(subcategoryProducts);
+                  if (filteredProducts.length === 0) return null;
 
-                return (
-                  <div key={subcategory} className="mb-5">
-                    <h3 className="mb-4">
-                      {subcategory}
-                      <span className="text-muted fs-5 ms-2">
-                        ({filteredProducts.length} products)
-                      </span>
-                    </h3>
-                    <Row>
-                      {filteredProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
-                      ))}
-                    </Row>
-                  </div>
-                );
-              })}
-            </div>
-          </Tab>
-        ))}
-      </Tabs>
+                  return (
+                    <div key={subcategory} className="mb-5">
+                      <h3 className="mb-4">
+                        {subcategory}
+                        <span className="text-muted fs-5 ms-2">
+                          ({filteredProducts.length} products)
+                        </span>
+                      </h3>
+                      <Row>
+                        {filteredProducts.map((product) => (
+                          <ProductCard key={product.id} product={product} />
+                        ))}
+                      </Row>
+                    </div>
+                  );
+                })}
+              </div>
+            </Tab>
+          ))}
+        </Tabs>
+      )}
     </Container>
   );
 };

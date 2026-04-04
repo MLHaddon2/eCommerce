@@ -11,7 +11,6 @@ import Checkout from './views/Main/Checkout.js';
 import Account from './views/Main/Account.js';
 import ProductPage from './views/Main/ProductPage.js';
 import AdminPanel from './views/Admin/AdminPanel.js';
-import RequestTest from './views/Tests/RequestTest.js';
 import { AuthProvider } from './contexts/AuthContext.js';
 import { DataProvider } from './contexts/DataContext.js';
 import { CartProvider } from './contexts/CartContext.js';
@@ -56,9 +55,6 @@ function App() {
               </Route>
               <Route path="/adminpanel">
                 <Route index element={ <AdminPanel /> } />
-              </Route>
-              <Route path="/tests/requesttest">
-                <Route index element={ <RequestTest /> } />
               </Route>
             </Routes>
         <footer className="text-center">

@@ -1,19 +1,32 @@
-import { React, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Container,
+  Navbar,
+  Nav,
+  NavDropdown,
+  Button,
+  Badge,
   Offcanvas,
   OffcanvasHeader,
-  OffcanvasBody,
   OffcanvasTitle,
-  Button,
+  OffcanvasBody,
+  Row,
+  Col,
 } from 'react-bootstrap';
-import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
-import NavDropdown from 'react-bootstrap/NavDropdown';
+import {
+  ShoppingCart,
+  User,
+  Home,
+  Package,
+  CreditCard,
+  LogOut,
+  Menu,
+  X,
+  Search,
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
-import { ShoppingCart, X } from 'lucide-react';
 
 // FIXED:
 // - Fixed bitwise `&` bug → logical `&&` in CartPreview guard:
@@ -22,29 +35,9 @@ import { ShoppingCart, X } from 'lucide-react';
 // - Merged NavLinks and LoggedOutNavLinks into a single NavLinks component with a
 //   conditional "Profile" link, eliminating the near-duplicate.
 
-// Ad component — drop real ad content into children or wire up an ad network
-const AdSpace = ({ adId, className = '', style = {}, children }) => (
-  <div
-    className={`ad-space ${className}`}
-    data-ad-id={adId}
-    style={{
-      minHeight: '60px',
-      backgroundColor: '#f8f9fa',
-      border: '1px dashed #dee2e6',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      ...style,
-    }}
-  >
-    {children || <small className="text-muted"> - Ad Space - {adId}</small>}
-  </div>
-);
-
 function Header() {
   const { isAuthenticated, username, logout } = useAuth();
-  const { cartItems, getCartTotal, getCartCount, removeFromCart, loadCartFromDatabase } =
-    useCart();
+  const { cartItems, getCartTotal, getCartCount, removeFromCart, loadCartFromDatabase } = useCart();
   const [showSidebar, setShowSidebar] = useState(false);
 
   useEffect(() => {
@@ -52,33 +45,36 @@ function Header() {
   }, []);
 
   /**
-   * Single NavLinks component — renders all common links and conditionally
-   * includes the Profile link when the user is authenticated.
+   * NavLinks component — renders navigation with icons for intuitive, discoverable UX.
    */
   const NavLinks = () => (
     <>
-      <Nav.Link as={Link} to="/home" className="nav-item px-3">
-        Home
+      <Nav.Link as={Link} to="/home" className="nav-link d-flex align-items-center px-3 py-2">
+        <Home size={18} className="me-2" />
+        <span className="d-none d-sm-inline">Home</span>
       </Nav.Link>
-      <Nav.Link as={Link} to="/browse" className="nav-item px-3">
-        Products
+      <Nav.Link as={Link} to="/browse" className="nav-link d-flex align-items-center px-3 py-2">
+        <Package size={18} className="me-2" />
+        <span className="d-none d-sm-inline">Products</span>
       </Nav.Link>
-      <Nav.Link as={Link} to="/cart" className="nav-item px-3">
-        Cart
+      <Nav.Link as={Link} to="/cart" className="nav-link d-flex align-items-center px-3 py-2">
+        <ShoppingCart size={18} className="me-2" />
+        <span className="d-none d-sm-inline">Cart</span>
       </Nav.Link>
-      <Nav.Link as={Link} to="/checkout" className="nav-item px-3">
-        Checkout
+      <Nav.Link as={Link} to="/checkout" className="nav-link d-flex align-items-center px-3 py-2">
+        <CreditCard size={18} className="me-2" />
+        <span className="d-none d-sm-inline">Checkout</span>
       </Nav.Link>
       {isAuthenticated && (
-        <Nav.Link as={Link} to="/account" className="nav-item px-3">
-          Profile
+        <Nav.Link as={Link} to="/account" className="nav-link d-flex align-items-center px-3 py-2">
+          <User size={18} className="me-2" />
+          <span className="d-none d-sm-inline">Profile</span>
         </Nav.Link>
       )}
     </>
   );
 
   const CartPreview = () => {
-    // FIXED: was `!isAuthenticated & !cartItems` (bitwise &) — now uses logical &&
     if (!isAuthenticated && !cartItems) return null;
 
     const itemCount = getCartCount();
@@ -87,89 +83,74 @@ function Header() {
     return (
       <NavDropdown
         title={
-          <div className="d-inline-block position-relative">
-            <ShoppingCart className="text-primary" size={24} />
+          <div className="d-flex align-items-center position-relative">
+            <ShoppingCart size={20} className="text-primary" />
             {itemCount > 0 && (
-              <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              <Badge
+                bg="danger"
+                className="position-absolute top-0 start-100 translate-middle rounded-pill"
+                style={{ fontSize: '0.7rem' }}
+              >
                 {itemCount}
-              </span>
+              </Badge>
             )}
           </div>
         }
         align="end"
-        className="nav-item px-3"
+        className="nav-link px-3"
       >
-        <div className="px-3 py-2" style={{ minWidth: '400px' }}>
-          {/* Cart dropdown ad */}
-          <AdSpace
-            adId="cart-dropdown-top"
-            className="mb-3"
-            style={{ minHeight: '80px' }}
-          />
+        <div className="px-3 py-2" style={{ minWidth: '280px' }}>
           {cartItems.length === 0 ? (
-            <p className="text-muted mb-0">Your cart is empty</p>
+            <p className="text-muted mb-2 text-center">Your cart is empty</p>
           ) : (
             <>
-              <div className="table-responsive">
-                <table className="table table-sm mb-2">
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th className="text-center">Qty</th>
-                      <th className="text-end">Price</th>
-                      <th className="text-end">Total</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cartItems.slice(0, 3).map((item) => (
-                      <tr key={item.id}>
-                        <td className="img-thumbnail">
-                          <img
-                            src={item.product_img}
-                            alt={item.name}
-                            style={{ width: '50px', height: '30px', objectFit: 'scale-down' }}
-                          />
-                        </td>
-                        <td className="text-truncate" style={{ maxWidth: '120px' }}>
-                          {item.name}
-                        </td>
-                        <td className="text-center">{item.quantity}</td>
-                        <td className="text-end">${item.price}</td>
-                        <td className="text-end">
-                          ${(item.quantity * item.price).toFixed(2)}
-                        </td>
-                        <td className="text-end">
-                          <button
-                            className="btn btn-link btn-sm p-0 text-danger"
-                            onClick={() => removeFromCart(item.id)}
-                            aria-label={`Remove ${item.name} from cart`}
-                          >
-                            <X size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="mb-3">
+                {cartItems.slice(0, 3).map((item) => (
+                  <Row key={item.id} className="align-items-center mb-2">
+                    <Col xs={3}>
+                      <img
+                        src={item.product_img}
+                        alt={item.name}
+                        className="img-fluid rounded"
+                        style={{ maxHeight: '40px', objectFit: 'cover' }}
+                      />
+                    </Col>
+                    <Col xs={6}>
+                      <small className="fw-semibold text-truncate d-block">{item.name}</small>
+                      <small className="text-muted">Qty: {item.quantity}</small>
+                    </Col>
+                    <Col xs={2} className="text-end">
+                      <small className="fw-bold">${(item.quantity * item.price).toFixed(2)}</small>
+                    </Col>
+                    <Col xs={1}>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="p-0 text-danger"
+                        onClick={() => removeFromCart(item.id)}
+                        aria-label={`Remove ${item.name} from cart`}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </Col>
+                  </Row>
+                ))}
               </div>
               {cartItems.length > 3 && (
                 <small className="text-muted d-block mb-2">
                   And {cartItems.length - 3} more items...
                 </small>
               )}
-              <div className="border-top pt-2">
-                <p className="mb-2 text-end">
-                  <strong>Total: ${cartTotal.toFixed(2)}</strong>
-                </p>
+              <hr className="my-2" />
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="fw-semibold">Total:</span>
+                <span className="fw-bold text-primary">${cartTotal.toFixed(2)}</span>
               </div>
             </>
           )}
-          <div className="border-top pt-2">
-            <Button as={Link} to="/cart" variant="primary" className="w-100">
-              View Cart
-            </Button>
-          </div>
+          <Button as={Link} to="/cart" variant="primary" size="sm" className="w-100">
+            View Cart
+          </Button>
         </div>
       </NavDropdown>
     );
@@ -177,71 +158,66 @@ function Header() {
 
   return (
     <>
-      {/* Top banner ad */}
-      <AdSpace
-        adId="header-banner-top"
-        className="w-100"
-        style={{
-          minHeight: '90px',
-          backgroundColor: '#e9ecef',
-          borderRadius: '0',
-          border: 'none',
-          borderBottom: '1px solid #dee2e6',
-        }}
-      />
-
-      <Navbar expand="lg" bg="white" variant="light" className="shadow-sm py-2">
+      <Navbar
+        expand="lg"
+        bg="light"
+        variant="light"
+        className="shadow-sm border-bottom"
+        sticky="top"
+      >
         <Container fluid>
-          <Button
-            variant="outline-primary"
-            className="navbar-toggler-icon"
-            onClick={() => setShowSidebar(true)}
-          />
-          <Navbar.Brand as={Link} to="/" className="font-weight-bold px-3">
-            Welcome
+          <Navbar.Brand as={Link} to="/" className="fw-bold text-primary d-flex align-items-center">
+            <Package size={24} className="me-2" />
+            <span className="d-none d-md-inline">ECommerce</span>
           </Navbar.Brand>
 
-          <Navbar.Toggle aria-controls="responsive-navbar-nav" />
+          <Navbar.Toggle
+            aria-controls="responsive-navbar-nav"
+            className="border-0"
+            onClick={() => setShowSidebar(true)}
+          >
+            <Menu size={20} />
+          </Navbar.Toggle>
+
           <Navbar.Collapse id="responsive-navbar-nav">
             <Nav className="me-auto d-flex align-items-center">
               <NavLinks />
-              {isAuthenticated && (
-                <div className="d-none d-xl-block ms-3">
-                  <AdSpace
-                    adId="nav-inline"
-                    style={{
-                      minHeight: '35px',
-                      width: '150px',
-                      fontSize: '0.8rem',
-                    }}
-                  />
-                </div>
-              )}
             </Nav>
             <Nav className="d-flex align-items-center">
               <CartPreview />
               {isAuthenticated ? (
                 <>
-                  <Navbar.Text className="px-3">
-                    Welcome, <span className="fw-bold">{username}</span>
+                  <Navbar.Text className="px-3 d-none d-lg-block">
+                    Welcome, <span className="fw-semibold">{username}</span>
                   </Navbar.Text>
-                  <Nav.Item className="px-3">
-                    <Button variant="outline-primary" size="sm" onClick={logout}>
-                      Log Out
-                    </Button>
-                  </Nav.Item>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={logout}
+                    className="d-flex align-items-center ms-2"
+                  >
+                    <LogOut size={16} className="me-1" />
+                    <span className="d-none d-sm-inline">Logout</span>
+                  </Button>
                 </>
               ) : (
                 <NavDropdown
-                  title="Login/Signup"
+                  title={
+                    <div className="d-flex align-items-center">
+                      <User size={18} className="me-1" />
+                      <span className="d-none d-sm-inline">Account</span>
+                    </div>
+                  }
                   id="auth-dropdown"
                   align="end"
-                  className="nav-item px-3"
+                  className="nav-link px-3"
                 >
-                  <NavDropdown.Item as={Link} to="/login" className="px-3">
+                  <NavDropdown.Item as={Link} to="/login" className="d-flex align-items-center">
+                    <User size={16} className="me-2" />
                     Login
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={Link} to="/signup" className="px-3">
+                  <NavDropdown.Item as={Link} to="/signup" className="d-flex align-items-center">
+                    <User size={16} className="me-2" />
                     Signup
                   </NavDropdown.Item>
                 </NavDropdown>
@@ -251,49 +227,36 @@ function Header() {
         </Container>
       </Navbar>
 
-      <Offcanvas show={showSidebar} onHide={() => setShowSidebar(false)}>
+      <Offcanvas show={showSidebar} onHide={() => setShowSidebar(false)} placement="start">
         <OffcanvasHeader closeButton>
-          <OffcanvasTitle>Menu</OffcanvasTitle>
+          <OffcanvasTitle className="d-flex align-items-center">
+            <Menu size={20} className="me-2" />
+            Menu
+          </OffcanvasTitle>
         </OffcanvasHeader>
         <OffcanvasBody>
-          {/* Sidebar top ad */}
-          <AdSpace
-            adId="sidebar-top"
-            className="mb-4"
-            style={{ minHeight: '120px' }}
-          />
           <Nav className="flex-column">
             <NavLinks />
           </Nav>
-          {/* Sidebar middle ad */}
-          <AdSpace
-            adId="sidebar-middle"
-            className="my-4"
-            style={{ minHeight: '100px' }}
-          />
-          <div className="mt-auto">
-            {/* Sidebar bottom ad */}
-            <AdSpace
-              adId="sidebar-bottom"
-              className="mt-4"
-              style={{ minHeight: '80px' }}
-            />
-          </div>
+          {isAuthenticated && (
+            <div className="mt-3 pt-3 border-top">
+              <p className="text-muted small mb-2">Welcome, {username}</p>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={() => {
+                  logout();
+                  setShowSidebar(false);
+                }}
+                className="w-100 d-flex align-items-center justify-content-center"
+              >
+                <LogOut size={16} className="me-2" />
+                Logout
+              </Button>
+            </div>
+          )}
         </OffcanvasBody>
       </Offcanvas>
-
-      {/* Sub-header banner ad */}
-      <AdSpace
-        adId="header-banner-bottom"
-        className="w-100"
-        style={{
-          minHeight: '60px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '0',
-          border: 'none',
-          borderBottom: '1px solid #dee2e6',
-        }}
-      />
     </>
   );
 }

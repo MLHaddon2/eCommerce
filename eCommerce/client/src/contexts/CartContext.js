@@ -1,16 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useData } from './DataContext';
 import axios from '../api/axios';
-
+import { getCookie, COOKIE_KEYS } from '../Utils/cookieUtils';
 
 const CartContext = createContext();
 
-export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState(() => {
-    // Initialize cart from localStorage if available
+const getPersistedCart = () => {
+  try {
     const savedCart = localStorage.getItem('cart');
     return savedCart ? JSON.parse(savedCart) : [];
-  });
+  } catch (error) {
+    console.warn('Could not parse persisted cart from localStorage:', error);
+    return [];
+  }
+};
+
+export const CartProvider = ({ children }) => {
+  const [cartItems, setCartItems] = useState(() => getPersistedCart());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const { updateIpHistory, createIpHistory, getIpHistory, getIpHistories } = useData();
@@ -46,20 +52,15 @@ export const CartProvider = ({ children }) => {
       }
   };
 
-  const syncCartWithDatabase = async (cartItems) => {
+  const syncCartWithDatabase = async (cartItemsToSync) => {
       try {
-          // const userId = localStorage.getItem('user_id') || '0000';
-          const lastLogin = new Date().toUTCString();
+          const userId = getCookie(COOKIE_KEYS.USER_ID) || '0000';
           const ipResponse = await axios.get('proxy');
           const ipAddress = ipResponse.data.ip;
 
-          // Check for IP Address and create one if not exists
-          const ipHistories = await getIpHistories();
-          const ipHistory = ipHistories.find(history => history.ipAddress === ipAddress);
-
-          !ipHistory ? await createIpHistory({ipAddress, lastLogin, cartItems})
-            :
-          await updateIpHistory(ipHistory.id, {ipAddress, lastLogin, cartItems});
+          await axios.post(`/api/cart/update/${userId}/${ipAddress}`, {
+            cartItems: cartItemsToSync,
+          });
       } catch (error) {
         console.error('Error syncing cart with database:', error);
       }
@@ -69,35 +70,57 @@ export const CartProvider = ({ children }) => {
     try {
       const newCartItems = cartItems.filter(item => item.id !== productId);
       setCartItems(newCartItems);
-      } catch (error) {
-          console.error('Error removing product from cart:', error);
-      }
+      await syncCartWithDatabase(newCartItems);
+    } catch (error) {
+      console.error('Error removing product from cart:', error);
+    }
   };
 
   const loadCartFromDatabase = async (userId) => {
     try {
+        const persistedCart = getPersistedCart();
+        const ipResponse = await axios.get('proxy');
+        const ipAddress = ipResponse.data.ip;
+
         if (userId) {
-          // Logged-in user — load cart from their customer record
-          const ipResponse = await axios.get('proxy');
-          const res = await axios.get(`/api/cart/get/${userId}/${ipResponse.data.ip}`);
-          console.log({ message: 'LoadFromCart (user) Response: ', res });
-          if (res?.data?.customer?.cartItems) {
-            setCartItems(res.data.customer.cartItems);
+          try {
+            const res = await axios.get(`/api/cart/get/${userId}/${ipAddress}`);
+            const remoteCart = res?.data?.cartItems || [];
+            if (remoteCart.length > 0) {
+              setCartItems(remoteCart);
+            } else if (persistedCart.length > 0) {
+              setCartItems(persistedCart);
+              await syncCartWithDatabase(persistedCart);
+            }
+          } catch (error) {
+            if (error.response?.status === 404 && persistedCart.length > 0) {
+              setCartItems(persistedCart);
+              await syncCartWithDatabase(persistedCart);
+            } else {
+              console.error('Error loading user cart:', error);
+            }
           }
         } else {
-          // Guest — load cart from IP history
-          const ipResponse = await axios.get('proxy');
-          const ipAddress = ipResponse.data.ip;
-          let ipHistory = await getIpHistory(ipAddress);
-
-          // Create IpHistory if not exists
-          if (!ipHistory) { 
-            ipHistory = await createIpHistory({ipAddress, lastLogin: null, cartItems}) 
-          };
-          const res = await getIpHistory(ipAddress);
-          console.log({ message: 'LoadFromCart (guest) Response: ', res });
-          if (res && res.cartItems) {
-            setCartItems(res.cartItems);
+          try {
+            const res = await axios.get(`/api/cart/get/${ipAddress}`);
+            const remoteCart = res?.data?.cartItems || [];
+            if (remoteCart.length > 0) {
+              setCartItems(remoteCart);
+            } else if (persistedCart.length > 0) {
+              setCartItems(persistedCart);
+              await syncCartWithDatabase(persistedCart);
+            }
+          } catch (error) {
+            if (error.response?.status === 404) {
+              if (persistedCart.length > 0) {
+                setCartItems(persistedCart);
+                await syncCartWithDatabase(persistedCart);
+              } else {
+                await createIpHistory({ ipAddress, lastLogin: null, cartItems: [] });
+              }
+            } else {
+              console.error('Error loading guest cart:', error);
+            }
           }
         }
     } catch (error) {
@@ -105,17 +128,18 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = async (productId, quantity) => {
     if (quantity < 1) return;
-    setCartItems(prevItems =>
-      prevItems.map(item =>
-        item.id === productId ? { ...item, quantity: parseInt(quantity) } : item
-      )
+    const newCartItems = cartItems.map(item =>
+      item.id === productId ? { ...item, quantity: parseInt(quantity) } : item
     );
+    setCartItems(newCartItems);
+    await syncCartWithDatabase(newCartItems);
   };
 
-  const clearCart = () => {
+  const clearCart = async () => {
     setCartItems([]);
+    await syncCartWithDatabase([]);
   };
 
   const getCartTotal = () => {
@@ -127,7 +151,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartProductIds = () => {
-    return console.log(cartItems.map(item => item.id));
+    return cartItems.map(item => item.id);
   };
   
   return (
