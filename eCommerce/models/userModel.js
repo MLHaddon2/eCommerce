@@ -9,19 +9,21 @@ const { DataTypes } = Sequelize;
 const Users = db.define('users', {
   username: {
     type: DataTypes.STRING,
+    allowNull: false,
     unique: true
   },
   email: {
     type: DataTypes.STRING,
+    allowNull: false,
     unique: true
   },
   password: {
     type: DataTypes.STRING,
-    unique: true
+    allowNull: false
   },
   refresh_token: {
     type: DataTypes.STRING,
-    unique: true,
+    allowNull: true
   },
   lastLogin: {
     type: DataTypes.DATE

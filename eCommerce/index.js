@@ -6,6 +6,8 @@ import router from './routes/index.js';
 import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'node:crypto';
+
 
 // FIXED 1: Changed `import crypto from "crypto"` to `import crypto from "node:crypto"`.
 // With "type": "module" in package.json, Node resolves bare specifiers differently.
@@ -15,7 +17,6 @@ import { fileURLToPath } from 'url';
 // forces Node to skip npm packages entirely and go straight to the built-in,
 // which always works regardless of what's installed in node_modules.
 // You can also safely run: npm uninstall crypto (the shim is no longer needed).
-import crypto from 'node:crypto';
 
 // FIXED 2: Added __filename and __dirname shims.
 // These globals don't exist in ES modules — they're CommonJS-only. Without this,
@@ -35,7 +36,7 @@ if (missingSecrets.length > 0) {
   console.error(`❌ Missing required environment variables: ${missingSecrets.join(', ')}`);
   console.error('Please add these to your .env file.');
   process.exit(1);
-}
+};
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -90,7 +91,6 @@ app.use(cors(corsOptionsDelegate));
 app.use(express.json());
 app.use(cookieParser());
 app.use(seedCookies);
-
 app.use('/api', router);
 
 // Proxy endpoint — returns the client's public IP via ipify.
