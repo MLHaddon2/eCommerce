@@ -4,6 +4,11 @@ import db from '../config/Database.js';
 const { DataTypes } = Sequelize;
 
 const IpHistories = db.define('iphistories', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
     ipAddress: {
         type: DataTypes.STRING,
         allowNull: false

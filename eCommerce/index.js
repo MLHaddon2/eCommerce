@@ -7,6 +7,9 @@ import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'node:crypto';
+import cartRoutes from './routes/cartRoutes.js';
+import ipHistoryRoutes from './routes/ipHistoryRoutes.js';
+
 
 
 // FIXED 1: Changed `import crypto from "crypto"` to `import crypto from "node:crypto"`.
@@ -92,6 +95,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(seedCookies);
 app.use('/api', router);
+app.use('/api/cart', cartRoutes);
+app.use('/api/ip-history', ipHistoryRoutes);
 
 // Proxy endpoint — returns the client's public IP via ipify.
 // Note: in production behind Nginx, req.ip will already contain the real client
