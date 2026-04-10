@@ -15,7 +15,7 @@
 
 //! TODO: (For after MVP is achieved) Implement the review system so that customers may leave reviews for their products. (Noted that the admin panel is already built to accommodate that.)
 
-//! TODO: There may be some TODO's in the adminPanel. Make sure to recreate the admin account and check it out. For example there may still be a bug with the other users being able to access it.
+//! TODO: There may be some TODO's in the adminPanel. For example there may still be a bug with the other users being able to access it.
 
 //! TODO: Fix the issue with the cart loading forms twice. Its seems to be related to the UseEffect running twice. This issue has been resolved for square payments, though the credit card form still needs fixing
 

@@ -5,7 +5,9 @@ import {
   COOKIE_KEYS,
   setCookie,
   clearAuthCookies,
+  getCookie
 } from '../Utils/cookieUtils';
+import { useNavigate } from 'react-router-dom';
 
 // FIXED — cookie strategy overhaul:
 //
@@ -36,6 +38,7 @@ export const AuthProvider = ({ children }) => {
   const [username, setUsername] = useState(null);
   const [userId, setUserId] = useState(null);
   const { loadCartFromDatabase, cartItems } = useCart();
+  const navigate = useNavigate();
 
   // On mount, check if the user is still authenticated by hitting verify-token.
   // The browser sends the httpOnly access_token cookie automatically — we never
@@ -65,6 +68,12 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
+  const handleAdminCheck = async () => {
+    if (getCookie(COOKIE_KEYS.USERNAME) === 'Admin') {
+      setCookie(COOKIE_KEYS.ADMIN) === 'true' ? navigate('/admin') : navigate('/home');
+    }
+  };
+
   const handleClearAuthData = () => {
     clearAuthCookies(); // clears username and user_id JS-readable cookies
     setIsAuthenticated(false);
@@ -84,6 +93,11 @@ export const AuthProvider = ({ children }) => {
       setUsername(user.username);
       setUserId(user.id);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      if (user.isAdmin) {
+        setCookie(COOKIE_KEYS.ADMIN, 'true');
+        handleAdminCheck();
+      };
 
       await loadCartFromDatabase(user.id);
     } catch (error) {

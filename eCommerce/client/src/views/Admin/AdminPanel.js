@@ -1,28 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Container, Tabs, Tab, Card, Table, Button, Form, Modal } from 'react-bootstrap';
 import { PlusCircle, Edit, Trash, User, Clock, Globe, CreditCard } from 'lucide-react';
 import { useData } from '../../contexts/DataContext.js';
+import { useAuth } from '../../contexts/AuthContext.js';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getCookie, COOKIE_KEYS } from '../../Utils/cookieUtils.js';
 
-// TODO: DONT ALLOW ACCESS TO THE ADMIN PANEL WITHOUT BEING LOGGED IN AS ADMIN
 
 const AdminPanel = () => {
-  // Data from context - consistent approach for all data types
-  const { 
-    products, 
-    customers, 
-    transactions, 
-    orders,
-    getProducts, 
-    getCustomers, 
-    getTransactions, 
-    getOrders,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    localDataCheck 
-  } = useData();
 
-  // Modal states
+  const { isAuthenticated } = useAuth();
+  const [authError, setAuthError] = useState(null);
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -38,6 +28,25 @@ const AdminPanel = () => {
     category: [],
     product_img: '',
   });
+  
+  // Data from context - consistent approach for all data types
+  const { 
+    products, 
+    customers, 
+    transactions, 
+    orders,
+    getProducts, 
+    getCustomers, 
+    getTransactions, 
+    getOrders,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    localDataCheck 
+  } = useData();
+  
+  const navigate = useNavigate();
+  // Modal states
 
   // Product management functions - simplified to match other data handling
   const handleAddProduct = async () => {
@@ -144,22 +153,82 @@ const AdminPanel = () => {
   };
 
   // Initialize data on component mount
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        await Promise.all([
-          getProducts(),
-          getCustomers(),
-          getTransactions(),
-          getOrders()
-        ]);
-        localDataCheck();
-      } catch (error) {
-        console.error("Error initializing data:", error);
-      };
-    };
-    initializeData();
-  }, []);
+useEffect(() => { 
+  // TODO: Auth check for the admin is complete, although the loading spinner feature runs before the DOM load and cancels out the rest of the stack.
+  const initializeData = async () => {
+    try {
+      const isAdmin = getCookie(COOKIE_KEYS.ADMIN) === 'true';
+
+      // AUTH GATE
+      if (!isAuthenticated) {
+        setAuthError("NOT_AUTHENTICATED");
+        setAuthCheckComplete(true);
+        return;
+      }
+
+      if (!isAdmin) {
+        setAuthError("NOT_ADMIN");
+        setAuthCheckComplete(true);
+        return;
+      }
+
+      // If authenticated AND admin → continue loading
+      await Promise.all([
+        getProducts(),
+        getCustomers(),
+        getTransactions(),
+        getOrders()
+      ]);
+
+      localDataCheck();
+      setAuthCheckComplete(true);
+
+    } catch (error) {
+      console.error("Error initializing data:", error);
+      setAuthCheckComplete(true);
+    }
+  };
+
+  initializeData();
+}, []);
+
+  if (!authCheckComplete) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <div className="spinner" />
+        <p className="mt-4 text-gray-600 text-lg">Checking authentication…</p>
+      </div>
+    );
+  }
+
+  if (authError === "NOT_AUTHENTICATED") {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <h2 className="text-2xl font-semibold mb-4">You must be an admin to access this page.</h2>
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+          onClick={() => window.location.href = "/"}
+        >
+          Return to Home
+        </button>
+      </div>
+    );
+  }
+
+  if (authError === "NOT_ADMIN") {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <h2 className="text-2xl font-semibold mb-4">You do not have permission to access this page.</h2>
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+          onClick={() => window.location.href = "/"}
+        >
+          Return to Home
+        </button>
+      </div>
+    );
+  }
+
   
   return (
     <Container fluid className="p-4">
