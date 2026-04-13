@@ -110,33 +110,46 @@ export const deleteProduct = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   try {
+    console.log("BODY RECEIVED:", req.body);
+
     const product = await Product.findOne({
-      where: {id: req.params.id}
+      where: { id: req.params.id }
     });
+
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
-    };
+    }
 
-    const isDefined = (val) => val !== undefined && val !== null;
+    // Only update fields that are actually provided
+    const updatableFields = [
+      "name",
+      "summary",
+      "description",
+      "reviews",
+      "availability",
+      "price",
+      "category",
+      "product_img"
+    ];
 
-    const { name, summary, description, reviews, availability, price, category, product_img } = req.body;
-    if (!name || !summary || !description || !reviews || !isDefined(availability) || !isDefined(price) || !category) {
-      return res.status(400).json({ message: "All fields are required" });
-    };
-    await Product.update({
-      name,
-      summary,
-      description,
-      reviews,
-      availability,
-      price,
-      category,
-      product_img: product_img || ""
-    }, {
-      where: {id: req.params.id}
+    const updates = {};
+
+    updatableFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
     });
-    res.status(200).json({message: "Product updated successfully", product});
+
+    // If nothing was provided, reject the request
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields provided for update" });
+    }
+
+    await Product.update(updates, {
+      where: { id: req.params.id }
+    });
   } catch (error) {
+    console.error("UPDATE ERROR:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

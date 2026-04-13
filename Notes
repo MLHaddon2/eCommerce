@@ -1,9 +1,0 @@
-TRUNCATE TABLE products;   -- Clear the bad data first
-
-LOAD DATA LOCAL INFILE 'C:/Users/haddo/Documents/eCommerce Website/eCommerce-Skeleton/eCommerce/client/src/views/Assets/productsFinal.csv'
-INTO TABLE products
-FIELDS TERMINATED BY ',' 
-ENCLOSED BY '"'
-LINES TERMINATED BY '\n'
-IGNORE 1 ROWS
-(id, name, summary, description, price, category, availability, reviews, product_img);

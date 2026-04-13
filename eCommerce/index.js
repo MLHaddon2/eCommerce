@@ -90,6 +90,10 @@ const seedCookies = (req, res, next) => {
 };
 
 // ── Middlewares ───────────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  console.log("REQUEST:", req.method, req.originalUrl);
+  next();
+});
 app.use(cors(corsOptionsDelegate));
 app.use(express.json());
 app.use(cookieParser());

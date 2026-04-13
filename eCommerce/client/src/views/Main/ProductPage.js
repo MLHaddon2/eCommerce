@@ -1,20 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Badge, ListGroup } from 'react-bootstrap';
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Badge,
+  ListGroup,
+  Modal,
+  Form
+} from 'react-bootstrap';
 import { StarFill, Star } from 'react-bootstrap-icons';
-import { useData } from '../../contexts/DataContext';
-import { useCart } from '../../contexts/CartContext';
-
-// FIXED:
-// - Guarded averageRating calculation against empty reviews array.
-//   Previously divided by reviews.length when it could be 0, producing NaN
-//   which crashed .toFixed() and renderStars(Math.round(NaN)).
-
+import { useData } from '../../contexts/DataContext.js';
+import { useCart } from '../../contexts/CartContext.js';
+import axios from '../../api/axios.js';
 
 const ProductPage = () => {
   const { id } = useParams();
   const { product, getProduct } = useData();
   const { addToCart } = useCart();
+
+  // --- REVIEW MODAL STATE ---
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     getProduct(id);
@@ -38,12 +49,38 @@ const ProductPage = () => {
     );
   };
 
-  // Guard: if there are no reviews, default to 0 instead of producing NaN
   const averageRating =
     product.reviews.length > 0
       ? product.reviews.reduce((acc, review) => acc + review.rating, 0) /
         product.reviews.length
       : 0;
+
+  // --- SUBMIT REVIEW ---
+  const submitReview = async () => {
+    try {
+      setSubmittingReview(true);
+
+      const newReview = {
+        rating: reviewRating,
+        comment: reviewComment,
+        date: new Date().toISOString()
+      };
+
+      await axios.put(`api/products/update/${id}`, {
+        reviews: [...product.reviews, newReview]
+      });
+
+      await getProduct(id);
+
+      setReviewRating(0);
+      setReviewComment('');
+      setShowReviewModal(false);
+    } catch (err) {
+      console.error('Error submitting review:', err);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   return (
     <Container className="py-5">
@@ -76,6 +113,7 @@ const ProductPage = () => {
           <div className="mb-4">
             <h4>Description</h4>
             <p>{product.description}</p>
+
             <div className="d-flex gap-2 mb-4">
               <Button
                 variant="primary"
@@ -92,6 +130,15 @@ const ProductPage = () => {
               </Link>
             </div>
 
+            {/* --- WRITE REVIEW BUTTON --- */}
+            <Button
+              variant="outline-primary"
+              className="mb-3"
+              onClick={() => setShowReviewModal(true)}
+            >
+              Write a Review
+            </Button>
+
             <h4>Customer Reviews</h4>
             {product.reviews.length === 0 ? (
               <p className="text-muted">No reviews yet.</p>
@@ -103,6 +150,7 @@ const ProductPage = () => {
                   </span>
                   {renderStars(Math.round(averageRating))}
                 </div>
+
                 <ListGroup>
                   {product.reviews.map((review, index) => (
                     <ListGroup.Item key={index}>
@@ -116,6 +164,56 @@ const ProductPage = () => {
           </div>
         </Col>
       </Row>
+
+      {/* --- REVIEW MODAL --- */}
+      <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Write a Review</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Rating</Form.Label>
+              <div className="d-flex gap-2">
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <Button
+                    key={num}
+                    variant={reviewRating === num ? 'warning' : 'outline-warning'}
+                    onClick={() => setReviewRating(num)}
+                  >
+                    {num} ★
+                  </Button>
+                ))}
+              </div>
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Comment</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Write your review..."
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReviewModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            disabled={submittingReview || reviewRating === 0}
+            onClick={submitReview}
+          >
+            {submittingReview ? 'Submitting...' : 'Submit Review'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
