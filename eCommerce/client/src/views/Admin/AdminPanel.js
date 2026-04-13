@@ -152,36 +152,69 @@ const AdminPanel = () => {
     console.log('Exporting transaction:', exportData);
   };
 
-  // Initialize data on component mount
-useEffect(() => { 
-  // TODO: Auth check for the admin is complete, although the loading spinner feature runs before the DOM load and cancels out the rest of the stack.
-  const initializeData = async () => {
+  // --- AUTH CHECK (recursive / polling) ---
+  const pollForAdmin = async (attempt = 0) => {
     try {
-      const isAdmin = getCookie(COOKIE_KEYS.ADMIN) === 'true';
+      const username = await getCookie(COOKIE_KEYS.USERNAME);
+      const isAdmin = username === 'Admin';
 
-      // AUTH GATE
-      if (!isAuthenticated) {
+      // 1. USERNAME MUST EXIST
+      if (!username) {
+        if (attempt < 10) {
+          await new Promise(res => setTimeout(res, 300));
+          return pollForAdmin(attempt + 1);
+        }
         setAuthError("NOT_AUTHENTICATED");
         setAuthCheckComplete(true);
         return;
       }
+      console.log(`Auth check attempt (Username Check) ${attempt + 1}: username=${username}, isAdmin=${isAdmin}`);
 
+      // 2. AUTH CONTEXT MUST BE READY
+      if (!isAuthenticated) {
+        if (attempt < 10) {
+          await new Promise(res => setTimeout(res, 300));
+          return pollForAdmin(attempt + 1);
+        }
+        setAuthError("NOT_AUTHENTICATED");
+        setAuthCheckComplete(true);
+        return;
+      }
+      console.log(`Auth check attempt (Auth Context Check) ${attempt + 1}: username=${username}, isAdmin=${isAdmin}`);
+
+      // 3. ADMIN COOKIE MUST BE TRUE
       if (!isAdmin) {
+        if (attempt < 10) {
+          await new Promise(res => setTimeout(res, 300));
+          return pollForAdmin(attempt + 1);
+        }
         setAuthError("NOT_ADMIN");
         setAuthCheckComplete(true);
         return;
       }
+      console.log(`Auth check attempt (Admin Check) ${attempt + 1}: username=${username}, isAdmin=${isAdmin}`);
 
-      // If authenticated AND admin → continue loading
+      // 4. SUCCESS → LOAD DATA
+      await initializeData();
+      setAuthCheckComplete(true);
+
+    } catch (err) {
+      console.error("Auth check failed:", err);
+      setAuthError("NOT_AUTHENTICATED");
+      setAuthCheckComplete(true);
+    }
+  };
+
+  const initializeData = async () => {
+    try {
       await Promise.all([
         getProducts(),
         getCustomers(),
         getTransactions(),
         getOrders()
       ]);
-
+      
       localDataCheck();
-      setAuthCheckComplete(true);
 
     } catch (error) {
       console.error("Error initializing data:", error);
@@ -189,8 +222,10 @@ useEffect(() => {
     }
   };
 
-  initializeData();
-}, []);
+  // Initialize data on component mount
+  useEffect(() => { 
+    pollForAdmin();
+  }, []);
 
   if (!authCheckComplete) {
     return (
@@ -207,7 +242,7 @@ useEffect(() => {
         <h2 className="text-2xl font-semibold mb-4">You must be an admin to access this page.</h2>
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded"
-          onClick={() => window.location.href = "/"}
+          onClick={() => navigate('/home')}
         >
           Return to Home
         </button>
@@ -221,7 +256,7 @@ useEffect(() => {
         <h2 className="text-2xl font-semibold mb-4">You do not have permission to access this page.</h2>
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded"
-          onClick={() => window.location.href = "/"}
+          onClick={() => navigate('/home')}
         >
           Return to Home
         </button>
@@ -229,7 +264,7 @@ useEffect(() => {
     );
   }
 
-  
+if (!authError) {
   return (
     <Container fluid className="p-4">
       <h1 className="mb-4">E-Commerce Admin Panel</h1>
@@ -841,6 +876,7 @@ useEffect(() => {
       </Modal>
     </Container>
   );
+}
 };
 
 export default AdminPanel;

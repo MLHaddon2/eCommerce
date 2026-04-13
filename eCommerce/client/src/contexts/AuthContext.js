@@ -57,6 +57,9 @@ export const AuthProvider = ({ children }) => {
           setCookie(COOKIE_KEYS.USER_ID, String(user.id));
           await loadCartFromDatabase(user.id);
         }
+
+        handleAdminCheck();
+
       } catch (error) {
         if (error.response?.status !== 401) {
           console.error('Error verifying token:', error);
@@ -69,8 +72,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const handleAdminCheck = async () => {
-    if (getCookie(COOKIE_KEYS.USERNAME) === 'Admin') {
-      setCookie(COOKIE_KEYS.ADMIN) === 'true' ? navigate('/admin') : navigate('/home');
+  if (getCookie(COOKIE_KEYS.USERNAME) === 'Admin') {
+      navigate('/AdminPanel');
+    } else {
+      navigate('/home');
     }
   };
 
@@ -93,13 +98,10 @@ export const AuthProvider = ({ children }) => {
       setUsername(user.username);
       setUserId(user.id);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      if (user.isAdmin) {
-        setCookie(COOKIE_KEYS.ADMIN, 'true');
-        handleAdminCheck();
-      };
-
       await loadCartFromDatabase(user.id);
+
+      handleAdminCheck();
+
     } catch (error) {
       console.error('Login failed:', error);
     }
