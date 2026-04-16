@@ -2,22 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button, Alert, Spinner, Form } from 'react-bootstrap';
 import { Lock } from 'lucide-react';
 
-// FIXED (CRITICAL — security):
-// The previous implementation collected raw cardNumber, expiryDate, and CVV in
-// React state and passed them to onSubmit(formData) — meaning raw PAN data flowed
-// through your own server, putting you in full PCI DSS scope.
-//
-// This version uses the Square Web Payments SDK (already used by SquarePaymentForm)
-// to render a hosted card input. Square tokenizes the card entirely client-side;
-// onSubmit is called with { token, details } — never raw card data.
-//
-// The parent (Checkout.js) already expects formData.token from this component.
-//
-// Environment variables required (same as SquarePaymentForm):
-//   REACT_APP_SQUARE_APPLICATION_ID
-//   REACT_APP_SQUARE_LOCATION_ID
-//   REACT_APP_SQUARE_ENVIRONMENT  (defaults to 'sandbox')
-
 const CreditCardForm = ({
   onSubmit,
   loading = false,
@@ -33,37 +17,35 @@ const CreditCardForm = ({
   const [saveCard, setSaveCard] = useState(false);
 
   const cardContainerRef = useRef(null);
-  const scriptRef = useRef(null);
-  const initializeRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const SQUARE_APPLICATION_ID = process.env.REACT_APP_SQUARE_APPLICATION_ID;
   const SQUARE_LOCATION_ID = process.env.REACT_APP_SQUARE_LOCATION_ID;
   const SQUARE_ENVIRONMENT = process.env.REACT_APP_SQUARE_ENVIRONMENT || 'sandbox';
 
-  const getSquareScriptUrl = () =>
+  const squareScriptUrl =
     SQUARE_ENVIRONMENT === 'production'
       ? 'https://web.squarecdn.com/v1/square.js'
       : 'https://sandbox.web.squarecdn.com/v1/square.js';
 
   useEffect(() => {
-    if (!initializeRef.current) {
-      loadSquareScript();
-    }
+    isMountedRef.current = true;
+    initializeSquare();
+
     return () => {
-      if (card) {
-        try { card.destroy(); } catch (e) { /* ignore */ }
-      }
-      if (scriptRef.current?.parentNode) {
-        scriptRef.current.parentNode.removeChild(scriptRef.current);
-        scriptRef.current = null;
-      }
-      initializeRef.current = false;
+      isMountedRef.current = false;
+      // Destroy the card instance on unmount to prevent orphaned iframes
+      setCard((prev) => {
+        if (prev) {
+          try { prev.destroy(); } catch (e) { /* ignore */ }
+        }
+        return null;
+      });
     };
   }, []);
 
-  const loadSquareScript = async () => {
+  const initializeSquare = async () => {
     try {
-      if (initializeRef.current) return;
       setScriptLoading(true);
       setInitError('');
 
@@ -71,56 +53,33 @@ const CreditCardForm = ({
         throw new Error('Square Application ID and Location ID must be configured.');
       }
 
-      if (window?.Square) {
-        await initializeSquareCard();
-        return;
+      // Load the SDK script if it isn't already on the page
+      if (!window.Square) {
+        await new Promise((resolve, reject) => {
+          // Reuse an in-flight script tag if one already exists
+          const existing = document.querySelector(`script[src="${squareScriptUrl}"]`);
+          if (existing) {
+            existing.addEventListener('load', resolve);
+            existing.addEventListener('error', () =>
+              reject(new Error('Failed to load Square SDK'))
+            );
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.src = squareScriptUrl;
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Failed to load Square SDK'));
+          document.head.appendChild(script);
+        });
       }
 
-      const existingScript = document.querySelector(`script[src="${getSquareScriptUrl()}"]`);
-      if (existingScript) {
-        existingScript.addEventListener('load', initializeSquareCard);
-        return;
-      }
+      if (!isMountedRef.current) return;
 
-      if (scriptRef.current) return;
+      const payments = window.Square.payments(SQUARE_APPLICATION_ID, SQUARE_LOCATION_ID);
 
-      const script = document.createElement('script');
-      script.src = getSquareScriptUrl();
-      script.async = true;
-      scriptRef.current = script;
-
-      script.onload = async () => {
-        if (!initializeRef.current) await initializeSquareCard();
-      };
-      script.onerror = () => {
-        setInitError('Failed to load Square Payment SDK. Please check your connection.');
-        setScriptLoading(false);
-        scriptRef.current = null;
-      };
-
-      document.head.appendChild(script);
-    } catch (error) {
-      setInitError(`Failed to initialize payment form: ${error.message}`);
-      setScriptLoading(false);
-    }
-  };
-
-  const initializeSquareCard = async () => {
-    try {
-      if (initializeRef.current) return;
-      initializeRef.current = true;
-
-      if (!window?.Square) {
-        initializeRef.current = false;
-        throw new Error('Square SDK not loaded.');
-      }
-
-      const paymentsInstance = window.Square.payments(
-        SQUARE_APPLICATION_ID,
-        SQUARE_LOCATION_ID
-      );
-
-      const cardInstance = await paymentsInstance.card({
+      const cardInstance = await payments.card({
         style: {
           '.input-container.is-focus': { borderColor: '#3b82f6' },
           '.input-container.is-error': { borderColor: '#ef4444' },
@@ -129,19 +88,25 @@ const CreditCardForm = ({
         },
       });
 
-      if (cardContainerRef.current) {
-        await cardInstance.attach(cardContainerRef.current);
+      if (!isMountedRef.current) return;
+
+      if (!cardContainerRef.current) {
+        throw new Error('Card container not found.');
+      }
+
+      // Attach to the empty container div — no children competing with Square's iframe
+      await cardInstance.attach(cardContainerRef.current);
+
+      if (isMountedRef.current) {
         setCard(cardInstance);
         setIsInitialized(true);
         setScriptLoading(false);
-      } else {
-        initializeRef.current = false;
-        throw new Error('Card container not found.');
       }
     } catch (error) {
-      initializeRef.current = false;
-      setInitError(`Failed to initialize payment form: ${error.message}`);
-      setScriptLoading(false);
+      if (isMountedRef.current) {
+        setInitError(`Failed to initialize payment form: ${error.message}`);
+        setScriptLoading(false);
+      }
     }
   };
 
@@ -153,7 +118,6 @@ const CreditCardForm = ({
       const result = await card.tokenize();
 
       if (result.status === 'OK') {
-        // Pass token (never raw card data) to Checkout.js
         onSubmit({ token: result.token, details: result.details }, saveCard);
       } else {
         const msg =
@@ -170,8 +134,7 @@ const CreditCardForm = ({
   const retry = () => {
     setInitError('');
     setIsInitialized(false);
-    initializeRef.current = false;
-    loadSquareScript();
+    initializeSquare();
   };
 
   if (initError) {
@@ -191,27 +154,42 @@ const CreditCardForm = ({
     <form onSubmit={handleSubmit}>
       <div className="mb-3">
         <label className="form-label fw-semibold">Card Information</label>
+
+        {/* Loading state rendered OUTSIDE and ABOVE the container,
+            so Square's iframe always attaches to an empty div */}
+        {(scriptLoading || !isInitialized) && (
+          <div
+            className="d-flex justify-content-center align-items-center"
+            style={{
+              minHeight: '96px',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              backgroundColor: '#ffffff',
+              marginBottom: '4px',
+            }}
+          >
+            <Spinner animation="border" size="sm" className="me-2" />
+            <span className="text-muted">Loading payment form...</span>
+          </div>
+        )}
+
+        {/* This div must always be rendered and always stay empty —
+            Square attaches its iframe directly into it */}
         <div
           ref={cardContainerRef}
           id="credit-card-container"
           style={{
-            minHeight: '120px',
+            // Hide (but keep mounted) until Square has attached, so there
+            // is no gap/flash between the spinner disappearing and the
+            // iframe appearing.
+            display: isInitialized ? 'block' : 'none',
             padding: '12px',
             border: '1px solid #d1d5db',
             borderRadius: '6px',
             backgroundColor: '#ffffff',
           }}
-        >
-          {(scriptLoading || !isInitialized) && (
-            <div
-              className="d-flex justify-content-center align-items-center"
-              style={{ minHeight: '96px' }}
-            >
-              <Spinner animation="border" size="sm" className="me-2" />
-              <span className="text-muted">Loading payment form...</span>
-            </div>
-          )}
-        </div>
+        />
+
         {isInitialized && (
           <small className="form-text text-muted">
             Secure payment processing powered by Square

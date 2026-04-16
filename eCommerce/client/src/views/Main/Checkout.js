@@ -5,7 +5,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../api/axios'; // FIXED: was importing from 'axios' directly, bypassing interceptors
 import SquarePaymentForm from '../../components/SquarePaymentForm.js';
-import CreditCardForm from '../../components/CreditCardForm.js';
+// import CreditCardForm from '../../components/CreditCardForm.js';
 import { useSavedCards } from '../../contexts/SavedCardsContext.js';
 
 // FIXED — CRITICAL (security):
@@ -36,7 +36,7 @@ import { useSavedCards } from '../../contexts/SavedCardsContext.js';
 
 const API_ENDPOINTS = {
   // Server receives a processor token + item IDs/quantities only — never raw card data
-  creditCard: '/api/payments/credit-card',
+  // creditCard: '/api/payments/credit-card',
   paypal: '/api/payments/paypal/capture',
   afterpay: '/api/payments/afterpay',
   klarna: '/api/payments/klarna',
@@ -116,55 +116,55 @@ function Checkout() {
    * CreditCardForm is responsible for tokenizing via the processor's client SDK
    * before calling this handler.
    */
-  const handleCreditCardSubmit = async (formData, saveCard = false) => {
-    setLoading(true);
-    setError('');
+  // const handleCreditCardSubmit = async (formData, saveCard = false) => {
+  //   setLoading(true);
+  //   setError('');
 
-    try {
-      let paymentData;
+  //   try {
+  //     let paymentData;
 
-      if (useNewCard) {
-        // formData.token is the processor token — raw card fields must NOT be present
-        if (!formData.token) {
-          setError('Payment tokenization failed. Please try again.');
-          setLoading(false);
-          return;
-        }
-        paymentData = {
-          processorToken: formData.token,
-          saveCard,
-          shippingState,
-          items: buildCartPayload(), // IDs + quantities only — server calculates price
-        };
-      } else {
-        paymentData = {
-          savedCardId: selectedSavedCard,
-          shippingState,
-          items: buildCartPayload(),
-        };
-      }
+  //     if (useNewCard) {
+  //       // formData.token is the processor token — raw card fields must NOT be present
+  //       if (!formData.token) {
+  //         setError('Payment tokenization failed. Please try again.');
+  //         setLoading(false);
+  //         return;
+  //       }
+  //       paymentData = {
+  //         processorToken: formData.token,
+  //         saveCard,
+  //         shippingState,
+  //         items: buildCartPayload(), // IDs + quantities only — server calculates price
+  //       };
+  //     } else {
+  //       paymentData = {
+  //         savedCardId: selectedSavedCard,
+  //         shippingState,
+  //         items: buildCartPayload(),
+  //       };
+  //     }
 
-      const response = await axios.post(API_ENDPOINTS.creditCard, paymentData);
+  //     const response = await axios.post(API_ENDPOINTS.creditCard, paymentData);
 
-      if (response.data.success) {
-        // If the user ticked "save card" and the server vaulted it, persist
-        // the card reference via the context so the UI updates immediately.
-        // The server returns { vaultedCard: { processorCardId, brand, last4,
-        //   expMonth, expYear } } when saveCard was true.
-        if (useNewCard && saveCard && response.data.vaultedCard) {
-          await addSavedCard(response.data.vaultedCard);
-        }
-        setSuccess(true);
-      } else {
-        setError(response.data.message || 'Payment failed. Please try again.');
-      }
-    } catch (err) {
-      console.error('Error processing payment:', err);
-      setError('An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     if (response.data.success) {
+  //       // If the user ticked "save card" and the server vaulted it, persist
+  //       // the card reference via the context so the UI updates immediately.
+  //       // The server returns { vaultedCard: { processorCardId, brand, last4,
+  //       //   expMonth, expYear } } when saveCard was true.
+  //       if (useNewCard && saveCard && response.data.vaultedCard) {
+  //         await addSavedCard(response.data.vaultedCard);
+  //       }
+  //       setSuccess(true);
+  //     } else {
+  //       setError(response.data.message || 'Payment failed. Please try again.');
+  //     }
+  //   } catch (err) {
+  //     console.error('Error processing payment:', err);
+  //     setError('An error occurred. Please try again.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleSquarePaymentSuccess = async (paymentResult) => {
     setLoading(true);
@@ -173,6 +173,7 @@ function Checkout() {
     try {
       const response = await axios.post(API_ENDPOINTS.square, {
         sourceId: paymentResult.token,
+        amount: calculateFinalTotal(), // Server should verify this total independently
         currency: 'USD',
         shippingState,
         items: buildCartPayload(), // FIXED: IDs + quantities only
@@ -421,7 +422,7 @@ function Checkout() {
           <Col md={6}>
             <h4>Payment Method</h4>
             <Form className="mb-4">
-              {['creditCard', 'square', 'paypal', 'afterpay', 'klarna'].map((method) => (
+              {['square', 'paypal', 'afterpay', 'klarna'].map((method) => (
                 <Form.Check
                   key={method}
                   type="radio"
@@ -439,7 +440,7 @@ function Checkout() {
               ))}
             </Form>
 
-            {paymentMethod === 'creditCard' && (
+            {/* {paymentMethod === 'creditCard' && (
               <div>
                 {savedCards.length > 0 && (
                   <div className="mb-3">
@@ -500,7 +501,7 @@ function Checkout() {
                   </small>
                 )}
               </div>
-            )}
+            )} */}
 
             {paymentMethod === 'square' && (
               <div>

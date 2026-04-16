@@ -4,7 +4,7 @@ const SquarePaymentForm = ({
   applicationId = 'sandbox-sq0idb-yQknbhfzkE_oLYjaXeNKPQ',
   locationId = 'LWA9Q5KARMH1J',
 
-  amount = 100,          // cents → change this as needed
+  amount,          // cents → change this as needed
   currency = 'USD',
 
   onTokenReceived = null,
@@ -91,7 +91,7 @@ const SquarePaymentForm = ({
     }
   };
 
-  const displayAmount = (amount / 100).toFixed(2);
+  const displayAmount = amount.toFixed(2);
 
   return (
     <form

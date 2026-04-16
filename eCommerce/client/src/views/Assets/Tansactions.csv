@@ -1,0 +1,4 @@
+orderId,customerId,amount,status,timestamp,paymentMethod,lastFour,timeline
+12345,67890,99.99,Completed,2024-06-01T12:34:56Z,Credit Card,1234,"[{""status"":""Pending"",""timestamp"":""2024-06-01T12:00:00Z""},{""status"":""Processing"",""timestamp"":""2024-06-01T12:15:00Z""},{""status"":""Completed"",""timestamp"":""2024-06-01T12:34:56Z""}]"
+54321,98765,49.99,Failed,2024-06-02T14:20:00Z,PayPal,,"[{""status"":""Pending"",""timestamp"":""2024-06-02T14:00:00Z""},{""status"":""Failed"",""timestamp"":""2024-06-02T14:20:00Z""}]"
+67890,12345,149.99,Completed,2024-06-03T16:45:30Z,Credit Card,5678,"[{""status"":""Pending"",""timestamp"":""2024-06-03T16:00:00Z""},{""status"":""Processing"",""timestamp"":""2024-06-03T16:30:00Z""},{""status"":""Completed"",""timestamp"":""2024-06-03T16:45:30Z""}]"
