@@ -13,4 +13,3 @@ coverage
 !.env.vault
 backups
 PoliticalSpectrumGraph
-test.pem
