@@ -174,12 +174,12 @@ function Header() {
           <Navbar.Toggle
             aria-controls="responsive-navbar-nav"
             className="border-0"
-            onClick={() => setShowSidebar(true)}
+            onClick={(e) => { e.stopPropagation(); setShowSidebar(true); }}
           >
             <Menu size={20} />
           </Navbar.Toggle>
 
-          <Navbar.Collapse id="responsive-navbar-nav">
+          <Navbar.Collapse id="responsive-navbar-nav" className="d-none d-lg-flex">
             <Nav className="me-auto d-flex align-items-center">
               <NavLinks />
             </Nav>

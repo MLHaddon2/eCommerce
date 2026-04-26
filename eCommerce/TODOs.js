@@ -21,13 +21,13 @@
 //DONE TODO: Implement a feature to automatically use the browser location to pre-fill the shipping address form on the checkout page. This would enhance user experience by reducing the amount of manual input required during checkout. 
 // DONE: The browser location feature has been implemented to pre-fill the shipping address form on the checkout page. This enhancement improves user experience by reducing the amount of manual input required during checkout, making the process faster and more convenient for customers. The location data is fetched using the useGeoLocation hook and is used to populate the relevant fields in the shipping address form automatically.
 
+//DONE TODO: Fix the UX/UI issue with the header opening a topdown bar and a sidebar when the scale is small. Currently the dropdown button toggles both the topdown bar and the sidebar, which creates a confusing user experience. The dropdown button should be updated to only toggle the sidebar. This will create a clearer and more intuitive navigation experience for users on smaller screens.
+// DONE: The header dropdown button now only toggles the sidebar, resolving the UX/UI issue where both the topdown bar and sidebar were being opened simultaneously. This provides a clearer and more intuitive navigation experience for users on smaller screens.
 // TODO: (For after MVP is achieved) Implement the review system so that customers may leave reviews for their products. (Noted that the admin panel is already built to accommodate that.) 
 
 // TODO: Implement all the missing JPGs for the items. OR wait to have actual items after deployment. 
 
-// TODO: Implement working API's for Klarna and Afterpay payment options. 
+// TODO: Implement working sandbox API's for Klarna and Afterpay payment options. 
 
 // TODO: Check for shipping state using geolocation for paypal, klarna and afterpay to ensure that they are only offered as payment options when the customer is in a state where those payment options are available.
-
-// TODO: Fix the UX/UI issue with the header opening a topdown bar and a sidebar when the scale is small. Currently the dropdown button toggles both the topdown bar and the sidebar, which creates a confusing user experience. The dropdown button should be updated to only toggle the sidebar. This will create a clearer and more intuitive navigation experience for users on smaller screens.
 
