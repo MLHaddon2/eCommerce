@@ -1,14 +1,4 @@
-node_modules
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-.DS_Store
-build
-coverage
-*.log
-*.lock
 .flaskenv*
 !.env.project
 !.env.vault
-backups
-PoliticalSpectrumGraph
+node_modules
