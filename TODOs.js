@@ -31,3 +31,4 @@
 
 // TODO: Check for shipping state using geolocation for paypal, klarna and afterpay to ensure that they are only offered as payment options when the customer is in a state where those payment options are available.
 
+// TODO: Add logistics integration for checkout (Order and transaction confirmations and item shipment integration specifically).
