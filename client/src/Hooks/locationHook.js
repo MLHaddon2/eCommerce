@@ -46,7 +46,7 @@ function useGeoLocation() {
         if (!res.ok) throw new Error("Failed to fetch location data");
 
         const data = await res.json();
-        setLocation(data.results[0].components.state_code);
+        setLocation(data.results[0].components.state_code.toString());
         return;
       }
 
@@ -59,7 +59,7 @@ function useGeoLocation() {
           if (!res.ok) throw new Error("Failed to fetch location data");
 
           const data = await res.json();
-          setLocation(data.results[0].components.state_code);
+          setLocation(data.results[0].components.state_code.toString());
           return;
         } catch {
           const ipLoc = await getIPLocation();
