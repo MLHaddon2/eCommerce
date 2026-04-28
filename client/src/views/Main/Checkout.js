@@ -271,7 +271,7 @@ function Checkout() {
               <hr />
               <div className="d-flex justify-content-between mb-2">
                 <span>Shipping State</span>
-                <span>{location ? location : 'Loading'}</span>
+                <span>{locationData ? locationData : 'Loading'}</span>
               </div>
               <div className="d-flex justify-content-between mb-2">
                 <span>Subtotal:</span>
@@ -279,7 +279,7 @@ function Checkout() {
               </div>
               <div className="d-flex justify-content-between mb-2">
                 <span>
-                  Sales Tax ({((STATE_TAX_RATES[location] || 0) * 100).toFixed(2)}%):
+                  Sales Tax ({((STATE_TAX_RATES[locationData] || 0) * 100).toFixed(2)}%):
                 </span>
                 <span>${calculateSalesTax().toFixed(2)}</span>
               </div>
@@ -330,7 +330,7 @@ function Checkout() {
 
             {paymentMethod === 'paypal' && (
               <div>
-                {location ? (
+                {locationData ? (
                   <PayPalScriptProvider
                     options={{
                       'client-id': process.env.REACT_APP_PAYPAL_CLIENT_ID,
