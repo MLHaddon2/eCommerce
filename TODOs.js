@@ -34,3 +34,5 @@
 // TODO: Add logistics integration for checkout (Order and transaction confirmations and item shipment integration specifically).
 
 // TODO: Add the ability to change your username and password on the account page. In fact add a tabbed account management page thats modular and scalable in nature.
+
+// TODO: The cart isn't persisting between page refreshes on the deployment build.
