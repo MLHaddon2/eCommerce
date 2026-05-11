@@ -36,3 +36,5 @@
 // TODO: Add the ability to change your username and password on the account page. In fact add a tabbed account management page thats modular and scalable in nature.
 
 // TODO: The cart isn't persisting between page refreshes on the deployment build.
+
+// TODO: Fully integrate paypal and square's production API keys for implementation of donation features.
