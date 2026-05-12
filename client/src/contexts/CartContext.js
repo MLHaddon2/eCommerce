@@ -25,7 +25,9 @@ export const CartProvider = ({ children }) => {
           : `/api/cart/get/${ipAddress}`;
 
       const res = await axios.get(url);
+      console.log("BACKEND CART RESPONSE:", res.data);
       setCartItems(res.data.cartItems || []);
+
     } catch (error) {
       console.error('Error loading cart:', error);
       setCartItems([]);
