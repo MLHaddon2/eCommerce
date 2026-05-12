@@ -87,6 +87,7 @@ export const CartProvider = ({ children }) => {
   --------------------------------------------------------- */
 
   const getCartCount = () => {
+    if (!Array.isArray(cartItems)) return 0;
     return cartItems.reduce((count, item) => count + item.quantity, 0);
   };
 
