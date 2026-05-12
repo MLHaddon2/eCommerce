@@ -26,7 +26,7 @@ export const CartProvider = ({ children }) => {
 
       const res = await axios.get(url);
       console.log("BACKEND CART RESPONSE:", res.data);
-      setCartItems(res.data.cartItems || []);
+      setCartItems(typeof res.data.cartItems === Array ? res.data.cartItems : []);
 
     } catch (error) {
       console.error('Error loading cart:', error);
