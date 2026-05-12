@@ -97,7 +97,7 @@ app.use((req, res, next) => {
 // app.use(cors(corsOptionsDelegate));
 
 const allowedOrigins = [
-  "http://ec2-18-232-86-51.compute-1.amazonaws.com",
+  "http://ec2-34-205-167-97.compute-1.amazonaws.com",
   "http://localhost:3000"
 ];
 
