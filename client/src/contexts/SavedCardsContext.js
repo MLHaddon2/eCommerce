@@ -37,7 +37,7 @@ export const SavedCardsProvider = ({ children }) => {
 
     try {
       const response = await axios.get('/api/user/saved-cards');
-      setSavedCards(response.data.cards || []);
+      setSavedCards(Array.isArray(response.data.cards) ? response.data.cards : []);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to load saved cards';
       console.error('Error fetching saved cards:', err);
