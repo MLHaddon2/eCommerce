@@ -127,7 +127,7 @@ export const SavedCardsProvider = ({ children }) => {
 
     try {
       const response = await axios.patch(`/api/user/saved-cards/${cardId}/default`);
-      setSavedCards(response.data.cards || []);
+      setSavedCards(typeof response.data.cards === Array ? response.data.cards : []);
       return true;
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to update default card';
