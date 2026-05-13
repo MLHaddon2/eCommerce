@@ -23,20 +23,20 @@
 
 //DONE TODO: Fix the UX/UI issue with the header opening a topdown bar and a sidebar when the scale is small. Currently the dropdown button toggles both the topdown bar and the sidebar, which creates a confusing user experience. The dropdown button should be updated to only toggle the sidebar. This will create a clearer and more intuitive navigation experience for users on smaller screens.
 // DONE: The header dropdown button now only toggles the sidebar, resolving the UX/UI issue where both the topdown bar and sidebar were being opened simultaneously. This provides a clearer and more intuitive navigation experience for users on smaller screens.
-// TODO: (For after MVP is achieved) Implement the review system so that customers may leave reviews for their products. (Noted that the admin panel is already built to accommodate that.) 
+// TODO 1:  (For after MVP is achieved) Implement the review system so that customers may leave reviews for their products. (Noted that the admin panel is already built to accommodate that.) 
 
-// TODO: Implement all the missing JPGs for the items. OR wait to have actual items after deployment. 
+// TODO 2: Implement all the missing JPGs for the items. OR wait to have actual items after deployment. 
 
-// TODO: Implement working sandbox API's for Klarna and Afterpay payment options. 
+// TODO 3: Implement working sandbox API's for Klarna and Afterpay payment options. 
 
-// TODO: Check for shipping state using geolocation for paypal, klarna and afterpay to ensure that they are only offered as payment options when the customer is in a state where those payment options are available.
+// TODO 4: Check for shipping state using geolocation for paypal, klarna and afterpay to ensure that they are only offered as payment options when the customer is in a state where those payment options are available.
 
-// TODO: Add logistics integration for checkout (Order and transaction confirmations and item shipment integration specifically).
+// TODO 5: Add logistics integration for checkout (Order and transaction confirmations and item shipment integration specifically).
 
-// TODO: Add the ability to change your username and password on the account page. In fact add a tabbed account management page thats modular and scalable in nature.
+// TODO 6: Add the ability to change your username and password on the account page. In fact add a tabbed account management page thats modular and scalable in nature.
 
-// TODO: The cart isn't persisting between page refreshes on the deployment build.
+// TODO 7: The cart isn't persisting between page refreshes on the deployment build.
 
-// TODO: Check if a product is a donation and implement a payment option.
+// TODO 8: Check if a product is a donation and implement a payment option.
 
-// TODO: Fully integrate paypal and square's production API keys for implementation of donation features.
+// TODO 9: Fully integrate paypal and square's production API keys for implementation of donation features.
