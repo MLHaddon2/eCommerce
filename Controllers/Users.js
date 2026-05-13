@@ -1,4 +1,6 @@
 import Users from '../models/userModel.js';
+import IpHistory from '../models/ipHistoryModel.js';
+import Customers from '../models/customerModel.js';
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -122,6 +124,30 @@ export const Login = async (req, res) => {
     // Authorization header for the remainder of this session without a page reload
     const userRes = { id: user.id, username: user.username, email: user.email };
     res.status(200).json({ message: "Login Successful", accessToken, userRes });
+
+    // Record IP — runs after response is sent so it never delays the login reply
+    const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+    if (ip) {
+      const now = new Date();
+
+      // 1. Upsert the standalone IpHistory table
+      const [ipRow] = await IpHistory.findOrCreate({
+        where: { ipAddress: ip },
+        defaults: { ipAddress: ip, userId: String(user.id), lastLogin: now, cartItems: [] }
+      });
+      if (ipRow.userId !== String(user.id) || ipRow.lastLogin !== now) {
+        await ipRow.update({ userId: String(user.id), lastLogin: now });
+      }
+
+      // 2. Append IP to the matching Customer row's ipHistory JSON array
+      const customer = await Customers.findOne({ where: { email: user.email } });
+      if (customer) {
+        const existing = Array.isArray(customer.ipHistory) ? customer.ipHistory : [];
+        if (!existing.includes(ip)) {
+          await customer.update({ ipHistory: [...existing, ip] });
+        }
+      }
+    }
   } catch (error) {
     return handleError(res, 'Login', error);
   }

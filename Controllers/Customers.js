@@ -67,6 +67,7 @@ export const updateCustomer = async (req, res) => {
     if (email       !== undefined) updateData.email       = email;
     if (address     !== undefined) updateData.address     = address;
     if (cartItems   !== undefined) updateData.cartItems   = cartItems;
+    if (ipHistory   !== undefined) updateData.ipHistory   = ipHistory;
     if (totalOrders !== undefined) updateData.totalOrders = totalOrders;
     if (totalSpent  !== undefined) updateData.totalSpent  = totalSpent;
 

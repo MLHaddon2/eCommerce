@@ -37,4 +37,6 @@
 
 // TODO: The cart isn't persisting between page refreshes on the deployment build.
 
+// TODO: Check if a product is a donation and implement a payment option.
+
 // TODO: Fully integrate paypal and square's production API keys for implementation of donation features.
