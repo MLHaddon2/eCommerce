@@ -101,7 +101,12 @@ export const SavedCardsProvider = ({ children }) => {
     try {
       const response = await axios.delete(`/api/user/saved-cards/${cardId}`);
       // Server returns the authoritative updated list after promotion logic
-      setSavedCards(response.data.cards || []);
+      if (!Array.isArray(response.data.cards)) {
+        setSavedCards([]);
+        throw new Error('Unexpected response format from server');
+      } else {
+        setSavedCards(response.data.cards);
+      }
       return true;
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to remove card';
