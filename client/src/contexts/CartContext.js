@@ -101,6 +101,10 @@ export const CartProvider = ({ children }) => {
     return cartItems.map((item) => item.id);
   };
 
+  const cartHasDonation = () => {
+    return Array.isArray(cartItems) && cartItems.some((item) => item.isDonation);
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -113,6 +117,7 @@ export const CartProvider = ({ children }) => {
         getCartCount,
         getCartTotal,
         getCartProductIds,
+        cartHasDonation,
         isLoading
       }}
     >

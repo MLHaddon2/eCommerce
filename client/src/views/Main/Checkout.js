@@ -59,7 +59,8 @@ const STATE_TAX_RATES = {
 
 function Checkout() {
   const navigate = useNavigate();
-  const { cartItems: cart, getCartTotal } = useCart();
+  const { cartItems: cart, getCartTotal, cartHasDonation } = useCart();
+  const isDonation = cartHasDonation();
 
   const [paymentMethod, setPaymentMethod] = useState('creditCard');
   const [loading, setLoading] = useState(false);
@@ -98,6 +99,7 @@ function Checkout() {
   }, [defaultCard]);
 
   const calculateSalesTax = () => {
+    if (isDonation) return 0;
     const subtotal = getCartTotal();
     const taxRate = STATE_TAX_RATES[location?.region || location] || 0;
     return subtotal * taxRate;
@@ -135,9 +137,10 @@ function Checkout() {
     try {
       const response = await axios.post(API_ENDPOINTS.square, {
         sourceId: paymentResult.token,
-        amount: calculateFinalTotal(), // Server should verify this total independently
+        amount: calculateFinalTotal(),
         currency: 'USD',
-        shippingState,
+        isDonation,
+        shippingState: isDonation ? null : shippingState,
         items: buildCartPayload(), // FIXED: IDs + quantities only
         paymentDetails: paymentResult.details,
       });
@@ -165,32 +168,27 @@ function Checkout() {
 
   const createPayPalOrder = (data, actions) => {
     const subtotal = getCartTotal();
-    const tax = calculateSalesTax();
+    const tax = calculateSalesTax(); // 0 when isDonation
     const total = calculateFinalTotal();
 
-    return actions.order.create({
-      purchase_units: [
-        {
-          amount: {
-            currency_code: 'USD',
-            value: total.toFixed(2),
-            breakdown: {
-              item_total: { currency_code: 'USD', value: subtotal.toFixed(2) },
-              tax_total: { currency_code: 'USD', value: tax.toFixed(2) },
-            },
-          },
-          // PayPal line items are display-only; authoritative total comes from breakdown above
-          items: cart.map((item) => ({
-            name: item.name,
-            quantity: item.quantity.toString(),
-            unit_amount: {
-              currency_code: 'USD',
-              value: item.price.toFixed(2),
-            },
-          })),
+    const purchaseUnit = {
+      amount: {
+        currency_code: 'USD',
+        value: total.toFixed(2),
+        breakdown: {
+          item_total: { currency_code: 'USD', value: subtotal.toFixed(2) },
+          ...(isDonation ? {} : { tax_total: { currency_code: 'USD', value: tax.toFixed(2) } }),
         },
-      ],
-    });
+      },
+      items: cart.map((item) => ({
+        name: item.name,
+        quantity: item.quantity.toString(),
+        unit_amount: { currency_code: 'USD', value: item.price.toFixed(2) },
+        ...(isDonation ? { category: 'DONATION' } : {}),
+      })),
+    };
+
+    return actions.order.create({ purchase_units: [purchaseUnit] });
   };
 
   const onPayPalApprove = async (data, actions) => {
@@ -277,12 +275,19 @@ function Checkout() {
                 <span>Subtotal:</span>
                 <span>${getCartTotal().toFixed(2)}</span>
               </div>
-              <div className="d-flex justify-content-between mb-2">
-                <span>
-                  Sales Tax ({((STATE_TAX_RATES[location?.region || location] || 0) * 100).toFixed(2)}%):
-                </span>
-                <span>${calculateSalesTax().toFixed(2)}</span>
-              </div>
+              {isDonation ? (
+                <div className="d-flex justify-content-between mb-2 text-success">
+                  <span>Tax:</span>
+                  <span>None (Donation)</span>
+                </div>
+              ) : (
+                <div className="d-flex justify-content-between mb-2">
+                  <span>
+                    Sales Tax ({((STATE_TAX_RATES[location?.region || location] || 0) * 100).toFixed(2)}%):
+                  </span>
+                  <span>${calculateSalesTax().toFixed(2)}</span>
+                </div>
+              )}
               <div className="d-flex justify-content-between mb-2">
                 <strong>Total:</strong>
                 <strong>${calculateFinalTotal().toFixed(2)}</strong>

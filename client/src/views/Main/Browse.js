@@ -20,21 +20,6 @@ const BrowseProducts = () => {
   }, [products.length, getProducts]);
 
   const categories = {
-    Gender: {
-      "Men's": products.filter((p) => p.category.includes("Men's")),
-      "Women's": products.filter((p) => p.category.includes("Women's")),
-      Unisex: products.filter((p) => p.category.includes('Unisex')),
-    },
-    'Shoe Type': {
-      Boots: products.filter((p) => p.category.includes('Boots')),
-      Sneakers: products.filter((p) => p.category.includes('Sneakers')),
-      Sandals: products.filter((p) => p.category.includes('Sandals')),
-      Loafers: products.filter((p) => p.category.includes('Loafers')),
-      Clogs: products.filter((p) => p.category.includes('Clogs')),
-      'Boat Shoes': products.filter((p) => p.category.includes('Boat Shoes')),
-      'Water Shoes': products.filter((p) => p.category.includes('Water Shoes')),
-      'Flip Flops': products.filter((p) => p.category.includes('Flip Flops')),
-    },
     Style: {
       Casual: products.filter((p) => p.category.includes('Casual')),
       Formal: products.filter((p) => p.category.includes('Formal')),
@@ -78,7 +63,16 @@ const BrowseProducts = () => {
           <p className="text-muted">Please check back later or refresh the page.</p>
         </div>
       ) : (
-        <Tabs defaultActiveKey="Shoe Type" className="mb-4">
+        <Tabs defaultActiveKey="All Items" className="mb-4">
+          <Tab eventKey="All Items" title="All Items">
+            <div className="mt-4">
+              <Row>
+                {filterBySearch(products).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </Row>
+            </div>
+          </Tab>
           {Object.entries(categories).map(([mainCategory, subcategories]) => (
             <Tab key={mainCategory} eventKey={mainCategory} title={mainCategory}>
               <div className="mt-4">

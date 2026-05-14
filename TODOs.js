@@ -37,6 +37,6 @@
 
 // TODO 7: The cart isn't persisting between page refreshes on the deployment build.
 
-// TODO 8: Check if a product is a donation and implement a payment option.
+// TODO 8: Check if a product is a donation and implement a payment option. also add an "All Items" tab on the products page.
 
 // TODO 9: Fully integrate paypal and square's production API keys for implementation of donation features.

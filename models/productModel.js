@@ -28,6 +28,10 @@ const Product = db.define('products', {
   },
   product_img: {
     type: DataTypes.STRING
+  },
+  isDonation: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   freezeTableName:true
