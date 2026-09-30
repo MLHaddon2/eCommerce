@@ -23,13 +23,23 @@ const Orders = db.define('orders', {
   },
   orderStatus: {
     type: DataTypes.STRING
+  },
+  // Where the receipt and shipping updates go (guests have no customer row).
+  customerEmail: {
+    type: DataTypes.STRING
+  },
+  trackingCarrier: {
+    type: DataTypes.STRING
+  },
+  trackingNumber: {
+    type: DataTypes.STRING
+  },
+  // [{ status, date, note? }] — every status change, oldest first.
+  statusHistory: {
+    type: DataTypes.JSON
   }
 }, {
   freezeTableName: true
 });
-
-(async () => {
-  await db.sync();
-})();
 
 export default Orders;

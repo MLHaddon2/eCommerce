@@ -1,132 +1,93 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useCart } from './CartContext';
-import axios from '../api/axios';
-import {
-  COOKIE_KEYS,
-  setCookie,
-  clearAuthCookies,
-  getCookie
-} from '../Utils/cookieUtils';
-import { useNavigate } from 'react-router-dom';
+import axios, { setAuthToken } from '../api/axios';
+import { clearAuthCookies } from '../Utils/cookieUtils';
 
-// FIXED — cookie strategy overhaul:
-//
-// BEFORE (broken):
-//   - login() called setCookie(ACCESS_TOKEN, token) to store the token in a
-//     JS-readable cookie, but the server was ALSO setting the same token as an
-//     httpOnly cookie. Two copies, one invisible to JS.
-//   - checkAuthStatus() called getCookie(ACCESS_TOKEN) which always returned
-//     null because the server's copy is httpOnly and invisible to document.cookie.
-//   - Result: every page refresh logged the user out silently.
-//
-// AFTER (fixed):
-//   - The server's httpOnly cookies (access_token, user_id, sessionId) are the
-//     single source of truth. The client never tries to read or write them.
-//   - withCredentials: true on the axios instance means the browser automatically
-//     sends these httpOnly cookies on every API request.
-//   - checkAuthStatus() calls GET /api/verify-token. The browser sends the httpOnly
-//     token cookie automatically — the server validates it and returns the user.
-//     No token reading in JS required.
-//   - login() stores only username in a JS-readable cookie (for the welcome message).
-//   - logout() calls POST /api/logout so the server can clear its httpOnly cookies.
-//     The client clears only the username cookie it owns.
+// Auth state comes from the server, never from JS-readable cookies:
+//   - The server's httpOnly cookies (access_token, refreshToken) are the source of truth;
+//     the browser sends them automatically (withCredentials in api/axios.js).
+//   - On load we call GET /api/session, which returns the user (renewing an expired
+//     access cookie from the refresh cookie) or null for guests.
+//   - isAdmin comes from the signed token (users.isAdmin). It only controls what the UI
+//     shows — the server enforces admin access on every admin route.
+//   - authChecked is false until the first session check finishes, so pages like
+//     AdminPanel can wait for it instead of polling.
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState(null);
-  const [userId, setUserId] = useState(null);
-  const { loadCartFromDatabase, cartItems } = useCart();
-  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const { loadCartFromDatabase } = useCart();
 
-  // On mount, check if the user is still authenticated by hitting verify-token.
-  // The browser sends the httpOnly access_token cookie automatically — we never
-  // need to read it in JS. The server returns the user object if the token is valid.
+  const applyUser = useCallback((nextUser, token) => {
+    setUser(nextUser);
+    setAuthToken(nextUser ? token : null);
+    if (!nextUser) clearAuthCookies();
+  }, []);
+
+  // On mount: restore the session (if any), then load the right cart —
+  // the customer cart when logged in, otherwise the guest session cart.
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await axios.get('/api/verify-token');
-        const { user } = response.data;
-
-        if (user) {
-          setIsAuthenticated(true);
-          setUsername(user.username);
-          setUserId(user.id);
-          setCookie(COOKIE_KEYS.IS_AUTHENTICATED, isAuthenticated.toString());
-          setCookie(COOKIE_KEYS.USERNAME, user.username);
-          setCookie(COOKIE_KEYS.USER_ID, String(user.id));
-          await loadCartFromDatabase(user.id);
-        }
-        const cookieCheck = getCookie(COOKIE_KEYS.IS_AUTHENTICATED);
-        console.log("isAuthenticated", cookieCheck);
-        handleAdminCheck();
-
+        // Always 200: { user } when logged in (the server renews an expired access
+        // cookie itself), { user: null } for guests — so guests see no 401s.
+        const response = await axios.get('/api/session');
+        applyUser(response.data.user || null, response.data.accessToken);
       } catch (error) {
-        if (error.response?.status !== 401) {
-          console.error('Error verifying token:', error);
-        }
-        handleClearAuthData();
+        console.error('Error checking session:', error);
+        applyUser(null);
+      } finally {
+        setAuthChecked(true);
+        await loadCartFromDatabase();
       }
     };
 
     checkAuthStatus();
-  }, [isAuthenticated]);
+    // Run once on mount; login/logout update state directly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-
-  const handleAdminCheck = async () => {
-  if (getCookie(COOKIE_KEYS.USERNAME) === 'Admin') {
-      navigate('/AdminPanel');
-    } else {
-      navigate('/home');
-    }
+  // Called by Login/Signup after a successful POST. The server has already set the
+  // httpOnly cookies and merged any guest cart into the customer cart.
+  const login = async ({ token, user: loggedInUser }) => {
+    applyUser(loggedInUser, token);
+    await loadCartFromDatabase();
   };
 
-  const handleClearAuthData = () => {
-    clearAuthCookies(); // clears username and user_id JS-readable cookies
-    setIsAuthenticated(false);
-    setUsername(null);
-    setUserId(null);
-    delete axios.defaults.headers.common['Authorization'];
-  };
-
-  const login = async (credentials) => {
-    try {
-      const { token, user } = credentials;
-
-      setCookie(COOKIE_KEYS.USERNAME, user.username);
-      setCookie(COOKIE_KEYS.USER_ID, String(user.id));
-
-      setIsAuthenticated(true);
-      setUsername(user.username);
-      setUserId(user.id);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      await loadCartFromDatabase(user.id);
-
-      handleAdminCheck();
-
-    } catch (error) {
-      console.error('Login failed:', error);
-    }
+  // Called after the server re-issues tokens (username/password change on the Account page).
+  const updateSession = ({ token, user: updatedUser }) => {
+    applyUser(updatedUser, token);
   };
 
   const logout = async () => {
     try {
-      // Tell the server to clear its httpOnly cookies (access_token, sessionId).
-      // The client cannot clear httpOnly cookies directly — only the server can.
-      await axios.post('api/logout', {
-        cartItems: cartItems,
-      });
+      // Only the server can clear httpOnly cookies.
+      await axios.post('/api/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       // Always clear client-side state even if the server call fails
-      handleClearAuthData();
+      applyUser(null);
+      await loadCartFromDatabase();
     }
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, userId, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: Boolean(user),
+        isAdmin: Boolean(user?.isAdmin),
+        username: user?.username || null,
+        userId: user?.id || null,
+        authChecked,
+        login,
+        logout,
+        updateSession
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

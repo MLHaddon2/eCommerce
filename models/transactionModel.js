@@ -27,13 +27,13 @@ const Transactions = db.define('transactions',{
   },
   timeline: {
     type: DataTypes.JSON
+  },
+  // Square payment id or PayPal capture id — needed for refunds/lookups.
+  processorPaymentId: {
+    type: DataTypes.STRING
   }
 },{
   freezeTableName: true
 });
-
-(async () => {
-  await db.sync();
-})();
 
 export default Transactions;

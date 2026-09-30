@@ -1,34 +1,27 @@
 // ── cookieUtils.js ────────────────────────────────────────────────────────────
-// Single source of truth for cookie names and helpers shared across the client.
+// Cookie names and helpers shared across the client.
 //
-// FIXED — auth cookie strategy:
-// The server sets httpOnly: true cookies (access_token, session, user_id).
-// httpOnly cookies are INVISIBLE to document.cookie by design — they are sent
-// automatically by the browser on every request but JS cannot read them.
-// Trying to read them with getCookie() always returns null/undefined.
-//
-// Strategy going forward:
-//   - httpOnly cookies (set by server): access_token, sessionId, user_id
-//     → Never read these in JS. The browser handles them automatically.
-//     → Auth state is determined by calling /api/verify-token on load,
-//       not by reading the token directly.
-//   - JS-readable cookies (set by client): username only — just for display.
-//     → Nothing sensitive. Losing this cookie only means the welcome
-//       message disappears until next login, which is fine.
+// Auth strategy:
+//   - The server sets httpOnly cookies (access_token, refreshToken, sessionId).
+//     These are INVISIBLE to document.cookie by design — the browser sends them
+//     automatically on every request (withCredentials in api/axios.js).
+//   - Who the user is, and whether they're an admin, comes from the server via
+//     /api/verify-token and lives in AuthContext. Never decide auth from a
+//     JS-readable cookie — anyone can edit those in devtools.
 
 export const COOKIE_KEYS = {
-    SESSION_ID:    'sessionId',     // httpOnly — set by server, do not read in JS
-    USER_ID:       'user_id',       // JS-readable — written by client after login
-    ACCESS_TOKEN:  'access_token',  // httpOnly — set by server, do not read in JS
-    REFRESH_TOKEN: 'refresh_token', // httpOnly — set by server, do not read in JS
-    USERNAME:      'username',      // JS-readable — safe to store, not sensitive
-    IS_AUTHENTICATED: 'isAuthenticated', // JS-readable — for auth status
+    SESSION_ID:    'sessionId',     // httpOnly — set by server
+    ACCESS_TOKEN:  'access_token',  // httpOnly — set by server
+    REFRESH_TOKEN: 'refreshToken',  // httpOnly — set by server
 };
+
+// JS-readable cookies written by older versions of the app. Cleared on logout /
+// failed auth so stale values don't linger in users' browsers.
+const LEGACY_COOKIES = ['username', 'user_id', 'isAuthenticated'];
 
 /**
  * Read a JS-readable cookie by name.
- * NOTE: This will always return null for httpOnly cookies (access_token,
- * user_id, sessionId) — that is expected and correct behaviour.
+ * NOTE: Always returns null for httpOnly cookies — that is expected.
  * @param {string} name
  * @returns {string|null}
  */
@@ -59,12 +52,9 @@ export const deleteCookie = (name) => {
 };
 
 /**
- * Clear the only JS-readable auth cookie (username).
- * The httpOnly cookies (token, user_id, sessionId) are cleared by the server
- * when it receives the logout request — the client cannot clear them directly.
+ * Clear JS-readable auth cookies left by older versions of the app.
+ * The httpOnly cookies are cleared by the server on POST /api/logout.
  */
 export const clearAuthCookies = () => {
-    deleteCookie(COOKIE_KEYS.ISAUTHENTICATED);
-    deleteCookie(COOKIE_KEYS.USERNAME);
-    deleteCookie(COOKIE_KEYS.USER_ID);
+    LEGACY_COOKIES.forEach(deleteCookie);
 };

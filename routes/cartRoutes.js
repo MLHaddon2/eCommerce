@@ -4,43 +4,26 @@ import {
   getCartItems,
   deleteCartItem
 } from '../Controllers/Cart.js';
+import { optionalAuth } from '../middleware/VerifyToken.js';
 
 const router = express.Router();
 
 /* ---------------------------------------------------------
-   USER CART ROUTES
+   CART ROUTES
+   The cart owner is resolved server-side: the logged-in user's
+   customer cart if there's a valid token, otherwise the guest
+   cart for the httpOnly sessionId cookie.
 --------------------------------------------------------- */
 
-// Get user cart
-router.get('/get/:userId/:ipAddress', getCartItems);
+router.use(optionalAuth);
 
-// Update user cart
-router.post('/update/:userId/:ipAddress', updateCartItems);
+// Get cart
+router.get('/', getCartItems);
 
-// Delete item from user cart
-router.delete('/delete/:userId/:productId/:ipAddress', deleteCartItem);
+// Replace cart contents
+router.put('/', updateCartItems);
 
-
-/* ---------------------------------------------------------
-   GUEST CART ROUTES
---------------------------------------------------------- */
-
-// Get guest cart
-router.get('/get/:ipAddress', (req, res) => {
-  req.params.userId = '0000';
-  return getCartItems(req, res);
-});
-
-// Update guest cart
-router.post('/update/:ipAddress', (req, res) => {
-  req.params.userId = '0000';
-  return updateCartItems(req, res);
-});
-
-// Delete item from guest cart
-router.delete('/delete/:ipAddress/:productId', (req, res) => {
-  req.params.userId = '0000';
-  return deleteCartItem(req, res);
-});
+// Decrement / remove one item
+router.delete('/:productId', deleteCartItem);
 
 export default router;

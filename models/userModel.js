@@ -27,14 +27,14 @@ const Users = db.define('users', {
   },
   lastLogin: {
     type: DataTypes.DATE
+  },
+  isAdmin: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   }
 }, {
   freezeTableName:true
 });
-
-// Sync to the current database
-(async () => {
-  await db.sync();
-})();
 
 export default Users;

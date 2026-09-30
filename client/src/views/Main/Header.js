@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Container,
@@ -23,7 +23,6 @@ import {
   LogOut,
   Menu,
   X,
-  Search,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
@@ -37,12 +36,9 @@ import { useCart } from '../../contexts/CartContext';
 
 function Header() {
   const { isAuthenticated, username, logout } = useAuth();
-  const { cartItems, getCartTotal, getCartCount, removeFromCart, loadCartFromDatabase } = useCart();
+  // The cart is loaded by AuthContext once it knows whether the user is logged in.
+  const { cartItems, getCartTotal, getCartCount, removeFromCart } = useCart();
   const [showSidebar, setShowSidebar] = useState(false);
-
-  useEffect(() => {
-    loadCartFromDatabase();
-  }, []);
 
   /**
    * NavLinks component — renders navigation with icons for intuitive, discoverable UX.
@@ -109,7 +105,7 @@ function Header() {
                   <Row key={item.id} className="align-items-center mb-2">
                     <Col xs={3}>
                       <img
-                        src={item.product_img}
+                        src={item.product_img || 'https://i.ibb.co/123pvjr/300x200.png'}
                         alt={item.name}
                         className="img-fluid rounded"
                         style={{ maxHeight: '40px', objectFit: 'cover' }}

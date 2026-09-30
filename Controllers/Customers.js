@@ -1,12 +1,6 @@
 import Customers from "../models/customerModel.js";
+import { handleError } from '../utils/handleError.js';
 
-const handleError = (res, context, error) => {
-  console.error(context, error);
-  return res.status(500).json({
-    message: `${context} failed`,
-    error: error?.message || String(error)
-  });
-};
 
 export const getCustomers = async (req, res) => {
   try {

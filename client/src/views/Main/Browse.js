@@ -19,22 +19,37 @@ const BrowseProducts = () => {
     }
   }, [products.length, getProducts]);
 
-  const categories = {
-    Style: {
-      Casual: products.filter((p) => p.category.includes('Casual')),
-      Formal: products.filter((p) => p.category.includes('Formal')),
-      Sport: products.filter((p) => p.category.includes('Sport')),
-      Outdoor: products.filter((p) => p.category.includes('Outdoor')),
-    },
-  };
+  // Categories come from the product data (free-form tags), so new tags show up
+  // without code changes. Stray whitespace in tags is ignored.
+  const categoriesOf = (product) => [
+    ...new Set(
+      (Array.isArray(product.category) ? product.category : [])
+        .map((tag) => String(tag).trim())
+        .filter(Boolean)
+    ),
+  ];
+
+  const byCategory = {};
+  products.forEach((product) => {
+    categoriesOf(product).forEach((tag) => {
+      (byCategory[tag] = byCategory[tag] || []).push(product);
+    });
+  });
+  // Largest categories first, then alphabetical.
+  const categoryEntries = Object.entries(byCategory).sort(
+    ([a, aProducts], [b, bProducts]) => bProducts.length - aProducts.length || a.localeCompare(b)
+  );
+
+  const donations = products.filter((p) => p.isDonation);
 
   const filterBySearch = (prods) => {
     if (!searchTerm) return prods;
     const lower = searchTerm.toLowerCase();
     return prods.filter(
       (product) =>
-        product.name.toLowerCase().includes(lower) ||
-        product.description.toLowerCase().includes(lower)
+        product.name?.toLowerCase().includes(lower) ||
+        product.description?.toLowerCase().includes(lower) ||
+        categoriesOf(product).some((tag) => tag.toLowerCase().includes(lower))
     );
   };
 
@@ -73,32 +88,42 @@ const BrowseProducts = () => {
               </Row>
             </div>
           </Tab>
-          {Object.entries(categories).map(([mainCategory, subcategories]) => (
-            <Tab key={mainCategory} eventKey={mainCategory} title={mainCategory}>
-              <div className="mt-4">
-                {Object.entries(subcategories).map(([subcategory, subcategoryProducts]) => {
-                  const filteredProducts = filterBySearch(subcategoryProducts);
-                  if (filteredProducts.length === 0) return null;
+          <Tab eventKey="Categories" title="Categories">
+            <div className="mt-4">
+              {categoryEntries.map(([category, categoryProducts]) => {
+                const filteredProducts = filterBySearch(categoryProducts);
+                if (filteredProducts.length === 0) return null;
 
-                  return (
-                    <div key={subcategory} className="mb-5">
-                      <h3 className="mb-4">
-                        {subcategory}
-                        <span className="text-muted fs-5 ms-2">
-                          ({filteredProducts.length} products)
-                        </span>
-                      </h3>
-                      <Row>
-                        {filteredProducts.map((product) => (
-                          <ProductCard key={product.id} product={product} />
-                        ))}
-                      </Row>
-                    </div>
-                  );
-                })}
+                return (
+                  <div key={category} className="mb-5">
+                    <h3 className="mb-4">
+                      {category}
+                      <span className="text-muted fs-5 ms-2">
+                        ({filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'})
+                      </span>
+                    </h3>
+                    <Row>
+                      {filteredProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </Row>
+                  </div>
+                );
+              })}
+            </div>
+          </Tab>
+          {donations.length > 0 && (
+            <Tab eventKey="Donations" title="Donations">
+              <div className="mt-4">
+                <p className="text-muted">Donations are tax-free and don't need a shipping address.</p>
+                <Row>
+                  {filterBySearch(donations).map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </Row>
               </div>
             </Tab>
-          ))}
+          )}
         </Tabs>
       )}
     </Container>

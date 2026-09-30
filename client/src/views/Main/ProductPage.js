@@ -14,18 +14,22 @@ import {
 import { StarFill, Star } from 'react-bootstrap-icons';
 import { useData } from '../../contexts/DataContext.js';
 import { useCart } from '../../contexts/CartContext.js';
+import { useAuth } from '../../contexts/AuthContext.js';
 import axios from '../../api/axios.js';
 
 const ProductPage = () => {
   const { id } = useParams();
   const { product, getProduct } = useData();
   const { addToCart } = useCart();
+  const { isAuthenticated, isAdmin, userId } = useAuth();
 
   // --- REVIEW MODAL STATE ---
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [editingReviewId, setEditingReviewId] = useState(null); // null = writing a new review
 
   useEffect(() => {
     getProduct(id);
@@ -55,30 +59,51 @@ const ProductPage = () => {
         product.reviews.length
       : 0;
 
-  // --- SUBMIT REVIEW ---
+  const isOwnReview = (review) => userId != null && String(review.userId) === String(userId);
+
+  const openReviewModal = (review = null) => {
+    setEditingReviewId(review ? review.id : null);
+    setReviewRating(review ? review.rating : 0);
+    setReviewComment(review ? review.comment : '');
+    setReviewError('');
+    setShowReviewModal(true);
+  };
+
+  // --- SUBMIT (NEW OR EDITED) REVIEW ---
   const submitReview = async () => {
     try {
       setSubmittingReview(true);
+      setReviewError('');
 
-      const newReview = {
-        rating: reviewRating,
-        comment: reviewComment,
-        date: new Date().toISOString()
-      };
-
-      await axios.put(`api/products/update/${id}`, {
-        reviews: [...product.reviews, newReview]
-      });
+      // Author and date are set by the server from the logged-in user.
+      const body = { rating: reviewRating, comment: reviewComment };
+      if (editingReviewId) {
+        await axios.put(`/api/products/${id}/reviews/${editingReviewId}`, body);
+      } else {
+        await axios.post(`/api/products/${id}/reviews`, body);
+      }
 
       await getProduct(id);
 
       setReviewRating(0);
       setReviewComment('');
+      setEditingReviewId(null);
       setShowReviewModal(false);
     } catch (err) {
       console.error('Error submitting review:', err);
+      setReviewError(err.response?.data?.message || 'Could not submit your review.');
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const deleteReview = async (review) => {
+    if (!window.confirm('Delete this review?')) return;
+    try {
+      await axios.delete(`/api/products/${id}/reviews/${review.id}`);
+      await getProduct(id);
+    } catch (err) {
+      window.alert(err.response?.data?.message || 'Could not delete the review.');
     }
   };
 
@@ -131,13 +156,19 @@ const ProductPage = () => {
             </div>
 
             {/* --- WRITE REVIEW BUTTON --- */}
-            <Button
-              variant="outline-primary"
-              className="mb-3"
-              onClick={() => setShowReviewModal(true)}
-            >
-              Write a Review
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                variant="outline-primary"
+                className="mb-3"
+                onClick={() => openReviewModal()}
+              >
+                Write a Review
+              </Button>
+            ) : (
+              <p className="text-muted mb-3">
+                <Link to="/login">Log in</Link> to write a review.
+              </p>
+            )}
 
             <h4>Customer Reviews</h4>
             {product.reviews.length === 0 ? (
@@ -153,8 +184,24 @@ const ProductPage = () => {
 
                 <ListGroup>
                   {product.reviews.map((review, index) => (
-                    <ListGroup.Item key={index}>
-                      <div className="d-flex mb-1">{renderStars(review.rating)}</div>
+                    <ListGroup.Item key={review.id || index}>
+                      <div className="d-flex align-items-center mb-1">
+                        {renderStars(review.rating)}
+                        {review.username && <small className="text-muted ms-2">{review.username}</small>}
+                        {review.editedAt && <small className="text-muted ms-2">(edited)</small>}
+                        {review.id && (isOwnReview(review) || isAdmin) && (
+                          <span className="ms-auto d-flex gap-2">
+                            {isOwnReview(review) && (
+                              <Button size="sm" variant="outline-secondary" onClick={() => openReviewModal(review)}>
+                                Edit
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline-danger" onClick={() => deleteReview(review)}>
+                              Delete
+                            </Button>
+                          </span>
+                        )}
+                      </div>
                       <p className="mb-0">{review.comment}</p>
                     </ListGroup.Item>
                   ))}
@@ -168,10 +215,11 @@ const ProductPage = () => {
       {/* --- REVIEW MODAL --- */}
       <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Write a Review</Modal.Title>
+          <Modal.Title>{editingReviewId ? 'Edit Your Review' : 'Write a Review'}</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
+          {reviewError && <p className="text-danger">{reviewError}</p>}
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Rating</Form.Label>
@@ -210,7 +258,7 @@ const ProductPage = () => {
             disabled={submittingReview || reviewRating === 0}
             onClick={submitReview}
           >
-            {submittingReview ? 'Submitting...' : 'Submit Review'}
+            {submittingReview ? 'Saving...' : editingReviewId ? 'Save Changes' : 'Submit Review'}
           </Button>
         </Modal.Footer>
       </Modal>

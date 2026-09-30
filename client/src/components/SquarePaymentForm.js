@@ -1,104 +1,123 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// Square Web Payments SDK card form. Card details go straight to Square, which returns a
+// one-time token; the parent sends that token to our server (POST /api/checkout/square),
+// and the server charges the amount it calculated itself.
+//
+// Config comes from client/.env.*:
+//   REACT_APP_SQUARE_APPLICATION_ID, REACT_APP_SQUARE_LOCATION_ID,
+//   REACT_APP_SQUARE_ENVIRONMENT ("production" for live; anything else = sandbox)
+
+const APPLICATION_ID = process.env.REACT_APP_SQUARE_APPLICATION_ID;
+const LOCATION_ID = process.env.REACT_APP_SQUARE_LOCATION_ID;
+const IS_PRODUCTION = (process.env.REACT_APP_SQUARE_ENVIRONMENT || '').toLowerCase().includes('production');
+const SDK_URL = IS_PRODUCTION
+  ? 'https://web.squarecdn.com/v1/square.js'
+  : 'https://sandbox.web.squarecdn.com/v1/square.js';
+
+const loadSquareSdk = () => {
+  if (window.Square) return Promise.resolve();
+  const existing = document.querySelector(`script[src="${SDK_URL}"]`);
+  return new Promise((resolve, reject) => {
+    const script = existing || document.createElement('script');
+    script.addEventListener('load', resolve);
+    script.addEventListener('error', () => reject(new Error('Failed to load the Square payment SDK')));
+    if (!existing) {
+      script.src = SDK_URL;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+};
+
 const SquarePaymentForm = ({
-  applicationId = 'sandbox-sq0idb-yQknbhfzkE_oLYjaXeNKPQ',
-  locationId = 'LWA9Q5KARMH1J',
-
-  amount,          // cents → change this as needed
-  currency = 'USD',
-
-  onTokenReceived = null,
+  amount,            // dollars, for display only — the server decides what is charged
+  onTokenReceived,   // ({ token, idempotencyKey }) => Promise
+  disabled = false,
 }) => {
   const [status, setStatus] = useState('');
+  const [ready, setReady] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const containerRef = useRef(null);
   const cardInstanceRef = useRef(null);
-  const paymentsInstanceRef = useRef(null);
 
   useEffect(() => {
-    console.log('🔧 Square Sandbox initialized with:', { applicationId, locationId });
-
     let isMounted = true;
 
     const initializeSquare = async () => {
+      if (!APPLICATION_ID || !LOCATION_ID) {
+        setStatus('❌ Card payments are not configured.');
+        return;
+      }
       try {
-        setStatus('Loading Square Sandbox...');
+        setStatus('Loading secure card form...');
+        await loadSquareSdk();
 
-        if (!window.Square) {
-          const script = document.createElement('script');
-          script.src = 'https://sandbox.web.squarecdn.com/v1/square.js';
-          script.async = true;
-          document.head.appendChild(script);
-
-          await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = () => reject(new Error('Failed to load Square Sandbox SDK'));
-          });
-        }
-
-        const payments = window.Square.payments(applicationId, locationId);
-        paymentsInstanceRef.current = payments;
-
+        const payments = window.Square.payments(APPLICATION_ID, LOCATION_ID);
         const card = await payments.card();
-        if (containerRef.current && isMounted) {
-          await card.attach(containerRef.current);
-          cardInstanceRef.current = card;
-          setStatus('✅ Sandbox card form ready • Test card: 4111 1111 1111 1111');
+
+        if (!isMounted || !containerRef.current) {
+          card.destroy();
+          return;
         }
+        await card.attach(containerRef.current);
+        cardInstanceRef.current = card;
+        setReady(true);
+        setStatus(IS_PRODUCTION ? '' : 'Sandbox mode • Test card: 4111 1111 1111 1111');
       } catch (error) {
         console.error('Square init error:', error);
-        setStatus('❌ Failed to load payment form. Check console.');
+        if (isMounted) setStatus('❌ Failed to load the payment form.');
       }
     };
 
     initializeSquare();
 
-    return () => { isMounted = false; };
-  }, [applicationId, locationId]);
+    // Destroying the card on unmount stops React Strict Mode's double-mount from
+    // leaving two card forms in the page.
+    return () => {
+      isMounted = false;
+      cardInstanceRef.current?.destroy();
+      cardInstanceRef.current = null;
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!cardInstanceRef.current) return;
+    if (!cardInstanceRef.current || disabled || isProcessing) return;
 
     setIsProcessing(true);
-    setStatus('Processing payment in sandbox...');
+    setStatus('Processing payment...');
 
     try {
       const result = await cardInstanceRef.current.tokenize();
 
       if (result.status === 'OK') {
-        console.log('✅ Square token received:', result.token);
-        setStatus('✅ Token received successfully!');
-
-        if (onTokenReceived) {
-          onTokenReceived({
-            token: result.token,
-            amount,
-            currency,
-            idempotencyKey: crypto.randomUUID?.() || `sq-${Date.now()}`,
-            environment: 'sandbox',
-          });
-        }
+        setStatus('');
+        await onTokenReceived({
+          token: result.token,
+          idempotencyKey: crypto.randomUUID?.() || `sq-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        });
       } else {
-        setStatus(`❌ Tokenization failed: ${result.errors?.[0]?.message || 'Unknown error'}`);
+        setStatus(`❌ ${result.errors?.[0]?.message || 'Please check your card details.'}`);
       }
     } catch (error) {
       console.error('Tokenization error:', error);
-      setStatus('❌ An error occurred during tokenization');
+      setStatus('❌ An error occurred while reading your card.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const displayAmount = amount.toFixed(2);
+  const displayAmount = Number(amount || 0).toFixed(2);
+  const buttonDisabled = !ready || disabled || isProcessing;
 
   return (
     <form
       onSubmit={handleSubmit}
       style={{
         maxWidth: '420px',
-        margin: '40px auto',
+        margin: '0 auto 24px',
         padding: '24px',
         border: '1px solid #ddd',
         borderRadius: '8px',
@@ -107,38 +126,30 @@ const SquarePaymentForm = ({
         fontFamily: 'system-ui, sans-serif',
       }}
     >
-      <h2 style={{ marginTop: 0, textAlign: 'center', color: '#00a65a' }}>
-        Pay ${displayAmount} (Sandbox Mode)
-      </h2>
-
       <div
         ref={containerRef}
         style={{
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          padding: '12px',
-          minHeight: '160px',
-          marginBottom: '24px',
-          backgroundColor: '#fafafa',
+          minHeight: '90px',
+          marginBottom: '16px',
         }}
       />
 
       <button
         type="submit"
-        disabled={isProcessing}
+        disabled={buttonDisabled}
         style={{
           width: '100%',
           padding: '14px',
-          backgroundColor: isProcessing ? '#666' : '#00a65a',
+          backgroundColor: buttonDisabled ? '#888' : '#00a65a',
           color: '#fff',
           border: 'none',
           borderRadius: '4px',
           fontSize: '16px',
           fontWeight: 600,
-          cursor: isProcessing ? 'not-allowed' : 'pointer',
+          cursor: buttonDisabled ? 'not-allowed' : 'pointer',
         }}
       >
-        {isProcessing ? 'Processing in Sandbox...' : `Pay $${displayAmount} Securely`}
+        {isProcessing ? 'Processing...' : `Pay $${displayAmount}`}
       </button>
 
       {status && (
@@ -147,15 +158,15 @@ const SquarePaymentForm = ({
             marginTop: '16px',
             textAlign: 'center',
             fontSize: '14px',
-            color: status.includes('✅') ? '#00a65a' : '#d32f2f',
+            color: status.startsWith('❌') ? '#d32f2f' : '#555',
           }}
         >
           {status}
         </p>
       )}
 
-      <p style={{ fontSize: '12px', textAlign: 'center', color: '#777', marginTop: '20px' }}>
-        Secured by Square • SANDBOX MODE
+      <p style={{ fontSize: '12px', textAlign: 'center', color: '#777', marginTop: '12px' }}>
+        Secured by Square{IS_PRODUCTION ? '' : ' • SANDBOX MODE'}
       </p>
     </form>
   );

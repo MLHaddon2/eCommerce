@@ -37,9 +37,4 @@ const Product = db.define('products', {
   freezeTableName:true
 });
 
-// Sync to the current database
-(async () => {
-  await db.sync();
-})();
-
 export default Product;

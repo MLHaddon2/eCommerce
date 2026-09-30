@@ -1,37 +1,40 @@
 {
   "dependencies": {
-    "axios": "^1.9.0",
     "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
-    "cookieparser": "^0.1.0",
     "cors": "^2.8.5",
-    "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.1",
-    "nodemon": "^3.1.10",
-    "path": "^0.12.7",
-    "router": "^2.2.0",
+    "nodemailer": "^7.0.13",
     "sequelize": "^6.37.7",
-    "square": "^42.3.0",
-    "type": "^2.7.3",
-    "zlib": "^1.0.5"
+    "square": "^42.3.0"
   },
   "name": "ecommerce",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run index\" \"npm run client\"",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon index.js",
     "client": "cd client && npm start",
     "build": "cd client && npm run build",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "set-admin": "node scripts/setAdmin.js",
+    "seed": "node scripts/seed.js",
+    "local": "npm run seed && npm run dev",
+    "fill-images": "node scripts/fillProductImages.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "nodemon": "^3.1.14",
+    "sqlite3": "^6.0.1"
+  }
 }

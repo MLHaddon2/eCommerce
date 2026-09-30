@@ -31,8 +31,4 @@ const IpHistories = db.define('iphistories', {
     freezeTableName: true
 });
 
-(async() => {
-    await db.sync();
-})();
-
 export default IpHistories;

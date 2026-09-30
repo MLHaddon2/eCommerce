@@ -1,0 +1,4 @@
+{
+  "ignore": ["client/*", "data/*", "tests/*", "coverage/*", "node_modules/*"],
+  "ext": "js,mjs,cjs,json"
+}

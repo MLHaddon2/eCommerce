@@ -41,8 +41,4 @@ const Customers = db.define('customers', {
   freezeTableName: true
 });
 
-(async () => {
-  await db.sync();
-})();
-
 export default Customers;

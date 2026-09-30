@@ -1,419 +1,181 @@
-import { SquareClient } from "square";
-import { randomUUID } from "crypto";
+import { SquareClient, SquareEnvironment, SquareError } from "square";
+import { randomUUID } from "node:crypto";
 import dotenv from "dotenv";
 
-// Initialize Square client globally to avoid recreating it
-let squareClient = null;
-let paymentsApi = null;
 dotenv.config();
 
-export const initializeSquareClient = () => {
+// Square SDK v42+. Customer checkout goes through Controllers/Checkout.js (chargeCard below);
+// the route handlers in this file are admin-only payment management.
+
+// Server-side env var; falls back to the old client-prefixed name.
+const SQUARE_LOCATION_ID = process.env.SQUARE_LOCATION_ID || process.env.REACT_APP_SQUARE_LOCATION_ID;
+
+let squareClient = null;
+
+export const getSquareClient = () => {
     if (!squareClient) {
         squareClient = new SquareClient({
-            accessToken: process.env.SQUARE_ACCESS_TOKEN,
-            environment: process.env.SQUARE_NODE_ENV || 'sandbox'
+            token: process.env.SQUARE_ACCESS_TOKEN,
+            environment: process.env.SQUARE_NODE_ENV === 'production'
+                ? SquareEnvironment.Production
+                : SquareEnvironment.Sandbox
         });
-        paymentsApi = squareClient.paymentsApi;
     }
-    return { squareClient, paymentsApi };
+    return squareClient;
 };
 
+// Square returns money amounts as BigInt, which res.json() can't serialize.
+const toJSONSafe = (value) =>
+    JSON.parse(JSON.stringify(value, (key, v) => (typeof v === 'bigint' ? Number(v) : v)));
+
+// Idempotency keys make retries (double-clicks, network retries) charge only once.
+// Accept the browser's key if it looks sane, otherwise make one.
+const idempotencyKeyFrom = (key) =>
+    typeof key === 'string' && /^[\w-]{8,45}$/.test(key) ? key : randomUUID();
+
+const squareErrorResponse = (res, context, error) => {
+    console.error(`${context}:`, error);
+    if (error instanceof SquareError) {
+        return res.status(error.statusCode && error.statusCode < 500 ? 400 : 502).json({
+            success: false,
+            message: error.errors?.map((e) => e.detail || e.code).join(', ') || `${context} failed`
+        });
+    }
+    return res.status(500).json({ success: false, message: `${context} failed` });
+};
+
+/* ---------------------------------------------------------
+   CHECKOUT HELPER (not a route)
+--------------------------------------------------------- */
+
+// Charges a card token from the Square Web Payments SDK. amountCents is computed
+// server-side by the checkout quote — never taken from the request body.
+export const chargeCard = async ({ sourceId, amountCents, idempotencyKey, note, buyerEmailAddress }) => {
+    if (!SQUARE_LOCATION_ID) throw new Error('SQUARE_LOCATION_ID is not configured');
+
+    const { payment } = await getSquareClient().payments.create({
+        sourceId,
+        idempotencyKey: idempotencyKeyFrom(idempotencyKey),
+        amountMoney: { amount: BigInt(amountCents), currency: 'USD' },
+        locationId: SQUARE_LOCATION_ID,
+        autocomplete: true,
+        note,
+        buyerEmailAddress
+    });
+
+    return {
+        id: payment.id,
+        status: payment.status,
+        amountCents: Number(payment.amountMoney?.amount ?? 0),
+        lastFour: payment.cardDetails?.card?.last4 || null
+    };
+};
+
+/* ---------------------------------------------------------
+   ADMIN ROUTES
+--------------------------------------------------------- */
+
+// GET /api/square/initialize — checks the credentials by listing locations.
 export const initializeSquareClientEndpoint = async (req, res) => {
     try {
-        const { squareClient: client, paymentsApi: api } = initializeSquareClient();
-        
-        if (!client || !api) {
-            return res.status(500).json({
-                success: false,
-                message: "Error accessing Square client server API"
-            });
-        }
-
-        // Test the connection
-        try {
-            // Try to list locations to verify the connection
-            const locationsApi = client.locationsApi;
-            await locationsApi.listLocations();
-            
-            return res.status(200).json({
-                success: true,
-                message: "Square client initialized successfully"
-            });
-        } catch (testError) {
-            console.error('Square API test error:', testError);
-            return res.status(500).json({
-                success: false,
-                message: "Square API connection test failed",
-                error: testError.message
-            });
-        }
-    } catch (error) {
-        console.error('Square client initialization error:', error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error Accessing Square API", 
-            error: error.message
+        const { locations = [] } = await getSquareClient().locations.list();
+        return res.status(200).json({
+            success: true,
+            message: "Square client initialized successfully",
+            locationConfigured: locations.some((l) => l.id === SQUARE_LOCATION_ID)
         });
+    } catch (error) {
+        return squareErrorResponse(res, 'Square connection test', error);
     }
 };
 
 export const getPayment = async (req, res) => {
     try {
-        const { squareClient: client, paymentsApi } = initializeSquareClient();
-        const { paymentId } = req.params;
-
-        if (!paymentId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Payment ID is required'
-            });
-        }
-
-        const response = await paymentsApi.getPayment(paymentId);
-
-        if (response.result.payment) {
-            return res.status(200).json({
-                success: true,
-                payment: response.result.payment,
-                message: 'Payment retrieved successfully'
-            });
-        } else {
-            return res.status(404).json({
-                success: false,
-                message: 'Payment not found'
-            });
-        }
-
+        const { payment } = await getSquareClient().payments.get({ paymentId: req.params.paymentId });
+        if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
+        return res.status(200).json({ success: true, payment: toJSONSafe(payment) });
     } catch (error) {
-        console.error('Error retrieving payment:', error);
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to retrieve payment',
-            error: error.message || 'Internal server error'
-        });
+        return squareErrorResponse(res, 'Get payment', error);
     }
 };
 
+// Only tip changes are supported, and only on payments that aren't completed yet.
 export const updatePayment = async (req, res) => {
     try {
-        const { squareClient: client, paymentsApi } = initializeSquareClient();
-        const { paymentId } = req.params;
         const { tipMoney, versionToken } = req.body;
-
-        if (!paymentId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Payment ID is required'
-            });
-        }
-
-        const updatePaymentRequest = {
+        const { payment } = await getSquareClient().payments.update({
+            paymentId: req.params.paymentId,
+            idempotencyKey: randomUUID(),
             payment: {
-                tipMoney: tipMoney ? {
-                    amount: tipMoney.amount,
-                    currency: tipMoney.currency || 'USD'
-                } : undefined,
-                versionToken: versionToken
-            },
-            idempotencyKey: randomUUID()
-        };
-
-        const response = await paymentsApi.updatePayment(paymentId, updatePaymentRequest);
-
-        if (response.result.payment) {
-            return res.status(200).json({
-                success: true,
-                payment: response.result.payment,
-                message: 'Payment updated successfully'
-            });
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to update payment'
-            });
-        }
-
-    } catch (error) {
-        console.error('Error updating payment:', error);
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to update payment',
-            error: error.message || 'Internal server error'
+                versionToken,
+                tipMoney: tipMoney
+                    ? { amount: BigInt(Math.round(Number(tipMoney.amount))), currency: tipMoney.currency || 'USD' }
+                    : undefined
+            }
         });
+        return res.status(200).json({ success: true, payment: toJSONSafe(payment) });
+    } catch (error) {
+        return squareErrorResponse(res, 'Update payment', error);
     }
 };
 
 export const cancelPayment = async (req, res) => {
     try {
-        const { squareClient: client, paymentsApi } = initializeSquareClient();
-        const { paymentId } = req.params;
-
-        if (!paymentId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Payment ID is required'
-            });
-        }
-
-        const cancelPaymentRequest = {
-            idempotencyKey: randomUUID()
-        };
-
-        const response = await paymentsApi.cancelPayment(paymentId, cancelPaymentRequest);
-
-        if (response.result.payment) {
-            return res.status(200).json({
-                success: true,
-                payment: response.result.payment,
-                message: 'Payment cancelled successfully'
-            });
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to cancel payment'
-            });
-        }
-
+        const { payment } = await getSquareClient().payments.cancel({ paymentId: req.params.paymentId });
+        return res.status(200).json({ success: true, payment: toJSONSafe(payment) });
     } catch (error) {
-        console.error('Error cancelling payment:', error);
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to cancel payment',
-            error: error.message || 'Internal server error'
-        });
+        return squareErrorResponse(res, 'Cancel payment', error);
     }
 };
 
 export const completePayment = async (req, res) => {
     try {
-        const { squareClient: client, paymentsApi } = initializeSquareClient();
-        const { paymentId } = req.params;
-
-        if (!paymentId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Payment ID is required'
-            });
-        }
-
-        const completePaymentRequest = {
-            idempotencyKey: randomUUID()
-        };
-
-        const response = await paymentsApi.completePayment(paymentId, completePaymentRequest);
-
-        if (response.result.payment) {
-            return res.status(200).json({
-                success: true,
-                payment: response.result.payment,
-                message: 'Payment completed successfully'
-            });
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to complete payment'
-            });
-        }
-
+        const { payment } = await getSquareClient().payments.complete({ paymentId: req.params.paymentId });
+        return res.status(200).json({ success: true, payment: toJSONSafe(payment) });
     } catch (error) {
-        console.error('Error completing payment:', error);
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to complete payment',
-            error: error.message || 'Internal server error'
-        });
+        return squareErrorResponse(res, 'Complete payment', error);
     }
 };
 
-// Main function to create payment (this is what your frontend calls)
-export const createPayment = async (req, res) => {
-    try {
-        const { squareClient: client, paymentsApi } = initializeSquareClient();
-        const { sourceId, amount, currency = 'USD', taxAmount, shippingState, items, paymentDetails } = req.body;
-
-        console.log('Creating payment with data:', {
-            sourceId: sourceId?.substring(0, 20) + '...',
-            amount,
-            currency,
-            taxAmount,
-            shippingState,
-            itemCount: items?.length || 0
-        });
-
-        if (!sourceId || !amount) {
-            return res.status(400).json({
-                success: false,
-                message: 'Source ID and amount are required'
-            });
-        }
-
-        // Validate location ID
-        if (!process.env.REACT_APP_SQUARE_LOCATION_ID) {
-            return res.status(500).json({
-                success: false,
-                message: 'Square location ID not configured'
-            });
-        }
-
-        const createPaymentRequest = {
-            sourceId,
-            idempotencyKey: randomUUID(),
-            amountMoney: {
-                amount: parseInt(amount), // Ensure it's an integer
-                currency: currency
-            },
-            locationId: process.env.REACT_APP_SQUARE_LOCATION_ID,
-            note: `Payment for order - ${items?.length || 0} items`,
-            autocomplete: true, // Set to false if you want to authorize first, then complete later
-            acceptPartialAuthorization: false,
-            buyerEmailAddress: req.body.buyerEmail || undefined,
-            billingAddress: req.body.billingAddress || undefined,
-            shippingAddress: req.body.shippingAddress || undefined,
-            taxMoney: taxAmount ? {
-                amount: parseInt(taxAmount),
-                currency: currency
-            } : undefined
-        };
-
-        // Add order info if items are provided
-        if (items && items.length > 0) {
-            createPaymentRequest.orderInfo = {
-                lineItems: items.map((item, index) => ({
-                    name: item.name,
-                    quantity: item.quantity.toString(),
-                    basePriceMoney: {
-                        amount: parseInt(item.basePriceMoney.amount),
-                        currency: item.basePriceMoney.currency
-                    }
-                }))
-            };
-        }
-
-        console.log('Sending payment request to Square...');
-        const response = await paymentsApi.createPayment(createPaymentRequest);
-        console.log('Square API response status:', response.statusCode);
-
-        if (response.result.payment) {
-            console.log('Payment created successfully:', response.result.payment.id);
-            return res.status(201).json({
-                success: true,
-                payment: response.result.payment,
-                message: 'Payment created successfully'
-            });
-        } else {
-            console.error('Payment creation failed:', response.result.errors);
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to create payment',
-                errors: response.result.errors
-            });
-        }
-
-    } catch (error) {
-        console.error('Error creating payment:', error);
-        
-        // Handle specific Square API errors
-        if (error.errors && Array.isArray(error.errors)) {
-            const errorMessages = error.errors.map(err => err.detail || err.code).join(', ');
-            return res.status(400).json({
-                success: false,
-                message: 'Payment processing failed',
-                error: errorMessages,
-                details: error.errors
-            });
-        }
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to create payment',
-            error: error.message || 'Internal server error'
-        });
-    }
-};
-
-// Function to refund a payment
+// Body: { amountCents?, reason? } — omit amountCents to refund the full payment.
 export const refundPayment = async (req, res) => {
     try {
-        const { squareClient: client } = initializeSquareClient();
+        const client = getSquareClient();
         const { paymentId } = req.params;
-        const { amountMoney, reason } = req.body;
 
-        if (!paymentId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Payment ID is required'
-            });
+        let amountCents = req.body.amountCents;
+        if (amountCents === undefined) {
+            const { payment } = await client.payments.get({ paymentId });
+            amountCents = Number(payment?.amountMoney?.amount ?? 0);
+        }
+        if (!Number.isInteger(Number(amountCents)) || Number(amountCents) <= 0) {
+            return res.status(400).json({ success: false, message: 'amountCents must be a positive whole number' });
         }
 
-        const refundRequest = {
+        const { refund } = await client.refunds.refundPayment({
             idempotencyKey: randomUUID(),
-            amountMoney: amountMoney || undefined, // If not provided, will refund full amount
-            paymentId: paymentId,
-            reason: reason || 'Customer requested refund'
-        };
-
-        const refundsApi = client.refundsApi;
-        const response = await refundsApi.refundPayment(refundRequest);
-
-        if (response.result.refund) {
-            return res.status(201).json({
-                success: true,
-                refund: response.result.refund,
-                message: 'Refund processed successfully'
-            });
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to process refund',
-                errors: response.result.errors
-            });
-        }
-
-    } catch (error) {
-        console.error('Error processing refund:', error);
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to process refund',
-            error: error.message || 'Internal server error'
+            paymentId,
+            amountMoney: { amount: BigInt(amountCents), currency: 'USD' },
+            reason: req.body.reason || 'Customer requested refund'
         });
+        return res.status(201).json({ success: true, refund: toJSONSafe(refund) });
+    } catch (error) {
+        return squareErrorResponse(res, 'Refund payment', error);
     }
 };
 
-// Function to list payments
 export const listPayments = async (req, res) => {
     try {
-        const { squareClient: client, paymentsApi } = initializeSquareClient();
-        const { beginTime, endTime, sortOrder, cursor, locationId } = req.query;
-
-        const listPaymentsRequest = {
-            beginTime: beginTime || undefined,
-            endTime: endTime || undefined,
+        const { beginTime, endTime, sortOrder, cursor } = req.query;
+        const page = await getSquareClient().payments.list({
+            beginTime,
+            endTime,
             sortOrder: sortOrder || 'DESC',
-            cursor: cursor || undefined,
-            locationId: locationId || process.env.REACT_APP_SQUARE_LOCATION_ID
-        };
-
-        const response = await paymentsApi.listPayments(listPaymentsRequest);
-
-        return res.status(200).json({
-            success: true,
-            payments: response.result.payments || [],
-            cursor: response.result.cursor || null,
-            message: 'Payments retrieved successfully'
+            cursor,
+            locationId: SQUARE_LOCATION_ID
         });
-
+        return res.status(200).json({ success: true, payments: toJSONSafe(page.data), hasMore: page.hasNextPage() });
     } catch (error) {
-        console.error('Error listing payments:', error);
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to list payments',
-            error: error.message || 'Internal server error'
-        });
+        return squareErrorResponse(res, 'List payments', error);
     }
 };

@@ -69,7 +69,8 @@ const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => 
             autoComplete="new-password"
             onChange={handleChange}
             value={inputs.password}
-            placeholder="Password"
+            placeholder="Password (at least 8 characters)"
+            minLength={8}
             required
           />
       </div>

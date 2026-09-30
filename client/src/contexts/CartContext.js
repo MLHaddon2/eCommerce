@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import axios from '../api/axios';
-import { getCookie, COOKIE_KEYS } from '../Utils/cookieUtils';
 
 const CartContext = createContext();
 
-const normalizeIp = (ip) => ip.replace('::ffff:', '').trim();
+// The server decides whose cart this is: the logged-in customer's cart when the
+// auth cookie is valid, otherwise the guest cart for the httpOnly sessionId cookie.
+// The client never sends a user id or IP address.
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
@@ -14,23 +15,15 @@ export const CartProvider = ({ children }) => {
      LOAD CART
   --------------------------------------------------------- */
   const loadCartFromDatabase = async () => {
+    setIsLoading(true);
     try {
-      const ipResponse = await axios.get('proxy');
-      const ipAddress = normalizeIp(ipResponse.data.ip);
-      const userId = getCookie(COOKIE_KEYS.USER_ID) || '0000';
-
-      const url =
-        userId !== '0000'
-          ? `/api/cart/get/${userId}/${ipAddress}`
-          : `/api/cart/get/${ipAddress}`;
-
-      const res = await axios.get(url);
-      console.log("BACKEND CART RESPONSE:", res.data);
-      setCartItems(typeof res.data.cartItems === Array ? res.data.cartItems : []);
-
+      const res = await axios.get('/api/cart');
+      setCartItems(Array.isArray(res.data.cartItems) ? res.data.cartItems : []);
     } catch (error) {
       console.error('Error loading cart:', error);
       setCartItems([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,16 +31,11 @@ export const CartProvider = ({ children }) => {
      SYNC CART
   --------------------------------------------------------- */
   const syncCartWithDatabase = async (items) => {
-    const ipResponse = await axios.get('proxy');
-    const ipAddress = normalizeIp(ipResponse.data.ip);
-    const userId = getCookie(COOKIE_KEYS.USER_ID) || '0000';
-
-    const url =
-      userId !== '0000'
-        ? `/api/cart/update/${userId}/${ipAddress}`
-        : `/api/cart/update/${ipAddress}`;
-
-    await axios.post(url, { cartItems: items });
+    try {
+      await axios.put('/api/cart', { cartItems: items });
+    } catch (error) {
+      console.error('Error saving cart:', error);
+    }
   };
 
   /* ---------------------------------------------------------
@@ -55,11 +43,10 @@ export const CartProvider = ({ children }) => {
   --------------------------------------------------------- */
 
   const addToCart = async (product) => {
-    const updated = [...cartItems];
-    const existing = updated.find((i) => i.id === product.id);
-
-    if (existing) existing.quantity += 1;
-    else updated.push({ ...product, quantity: 1 });
+    const existing = cartItems.find((i) => i.id === product.id);
+    const updated = existing
+      ? cartItems.map((i) => (i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i))
+      : [...cartItems, { ...product, quantity: 1 }];
 
     setCartItems(updated);
     await syncCartWithDatabase(updated);
@@ -71,10 +58,11 @@ export const CartProvider = ({ children }) => {
     await syncCartWithDatabase(updated);
   };
 
-  const updateQuantity = async (productId, quantity) => {
-    const updated = cartItems.map((i) =>
-      i.id === productId ? { ...i, quantity } : i
-    );
+  const updateQuantity = async (productId, rawQuantity) => {
+    const quantity = parseInt(rawQuantity, 10) || 0;
+    const updated = quantity > 0
+      ? cartItems.map((i) => (i.id === productId ? { ...i, quantity } : i))
+      : cartItems.filter((i) => i.id !== productId);
     setCartItems(updated);
     await syncCartWithDatabase(updated);
   };

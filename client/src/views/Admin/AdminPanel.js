@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { Container, Tabs, Tab, Card, Table, Button, Form, Modal } from 'react-bootstrap';
-import { PlusCircle, Edit, Trash, User, Clock, Globe, CreditCard } from 'lucide-react';
+import { PlusCircle, Edit, Trash, User, Clock, CreditCard } from 'lucide-react';
 import { useData } from '../../contexts/DataContext.js';
+import OrderStatusEditor from '../../components/admin/OrderStatusEditor.js';
 import { useAuth } from '../../contexts/AuthContext.js';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCookie, COOKIE_KEYS } from '../../Utils/cookieUtils.js';
 
+
+// Order lines from checkout carry price (dollars) and unitPriceCents; older rows may have only one.
+const itemPrice = (item) => Number(item.price ?? (item.unitPriceCents ?? 0) / 100) || 0;
 
 const AdminPanel = () => {
 
-  const [authError, setAuthError] = useState(null);
-  const [authCheckComplete, setAuthCheckComplete] = useState(false);
+  // isAdmin comes from the server-signed token (see AuthContext). This only decides
+  // what to render — every admin API route is also protected by verifyAdmin on the server.
+  const { authChecked, isAuthenticated, isAdmin } = useAuth();
+  const authError = !authChecked ? null : !isAuthenticated ? "NOT_AUTHENTICATED" : !isAdmin ? "NOT_ADMIN" : null;
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -41,11 +46,23 @@ const AdminPanel = () => {
     createProduct,
     updateProduct,
     deleteProduct,
+    deleteProductReview,
+    updateTransactionStatus,
     localDataCheck 
   } = useData();
   
   const navigate = useNavigate();
   // Modal states
+
+  // Review moderation — admins can delete any review.
+  const handleDeleteReview = async (productId, reviewId) => {
+    if (!window.confirm('Delete this review?')) return;
+    try {
+      await deleteProductReview(productId, reviewId);
+    } catch (error) {
+      window.alert(error.message);
+    }
+  };
 
   // Product management functions - simplified to match other data handling
   const handleAddProduct = async () => {
@@ -127,90 +144,37 @@ const AdminPanel = () => {
   // Transaction status update handler
   const handleUpdateStatus = async (transactionId, newStatus) => {
     try {
-      // API call would go here
-      console.log(`Updating transaction ${transactionId} to ${newStatus}`);
-      // Refresh transactions data after update
-      await getTransactions();
+      const updated = await updateTransactionStatus(transactionId, newStatus);
+      setSelectedTransaction(updated);
     } catch (error) {
-      console.error('Error updating transaction status:', error);
+      window.alert(error.message);
     }
   };
 
-  // Export transaction details handler
+  // Export transaction details — downloads a JSON file with the transaction, its order and customer.
   const handleExportTransaction = (transaction) => {
+    const customer = customers.find(c => c.id === transaction.customerId);
     const exportData = {
       ...transaction,
-      customerName: customers.find(c => c.id === transaction.customerId)?.name,
+      customerName: customer ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') : null,
+      customerEmail: customer?.email ?? null,
+      order: orders.find(o => o.id === transaction.orderId) ?? null,
       exportDate: new Date().toISOString()
     };
-    
-    // In a real implementation, you might want to:
-    // 1. Generate a PDF or CSV
-    // 2. Use a proper export library
-    // 3. Handle the download process
-    console.log('Exporting transaction:', exportData);
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transaction-${transaction.id}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   };
 
 
  
-  // --- AUTH CHECK (recursive / polling) ---
-  const pollForAdmin = async (attempt = 0) => {
-    try {
-      // Set the username to cookie for username
-      const username = await getCookie(COOKIE_KEYS.USERNAME);
-      const isAdmin = username === 'Admin';
-
-      // Set the isAuthenticated boolean to the boolean cookie isAuthenticated
-      const isAuthenticated = await getCookie(COOKIE_KEYS.IS_AUTHENTICATED);
-      console.log(`Cookie Values - Username: ${username}, IsAuthenticated: ${isAuthenticated}, IsAdmin: ${isAdmin}`);
-
-      // 1. USERNAME MUST EXIST
-      if (!username) {
-        if (attempt < 10) {
-          await new Promise(res => setTimeout(res, 300));
-          return pollForAdmin(attempt + 1);
-        }
-        setAuthError("NOT_AUTHENTICATED");
-        setAuthCheckComplete(true);
-        return;
-      }
-      console.log(`Auth check attempt (Username Check) ${attempt + 1}: username=${username}, isAdmin=${isAdmin}`);
-
-      // 2. AUTH CONTEXT MUST BE READY
-      if (!isAuthenticated) {
-        if (attempt < 10) {
-          await new Promise(res => setTimeout(res, 300));
-          return pollForAdmin(attempt + 1);
-        }
-        setAuthError("NOT_AUTHENTICATED");
-        setAuthCheckComplete(true);
-        return;
-      }
-      console.log(`Auth check attempt (Auth Context Check) ${attempt + 1}: username=${username}, isAdmin=${isAdmin}`);
-
-      // 3. ADMIN COOKIE MUST BE TRUE
-      if (!isAdmin) {
-        if (attempt < 10) {
-          await new Promise(res => setTimeout(res, 300));
-          return pollForAdmin(attempt + 1);
-        }
-        setAuthError("NOT_ADMIN");
-        setAuthCheckComplete(true);
-        return;
-      }
-      console.log(`Auth check attempt (Admin Check) ${attempt + 1}: username=${username}, isAdmin=${isAdmin}`);
-
-      // 4. SUCCESS → LOAD DATA
-      await initializeData();
-      setAuthCheckComplete(true);
-
-    } catch (err) {
-      console.error("Auth check failed:", err);
-      setAuthError("NOT_AUTHENTICATED");
-      setAuthCheckComplete(true);
-    }
-  };
-
   const initializeData = async () => {
     try {
       await Promise.all([
@@ -224,16 +188,16 @@ const AdminPanel = () => {
 
     } catch (error) {
       console.error("Error initializing data:", error);
-      setAuthCheckComplete(true);
     }
   };
 
-  // Initialize data on component mount
-  useEffect(() => { 
-    pollForAdmin();
-  }, []);
+  // Load admin data once the server has confirmed this user is an admin
+  useEffect(() => {
+    if (authChecked && isAdmin) initializeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authChecked, isAdmin]);
 
-  if (!authCheckComplete) {
+  if (!authChecked) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
         <div className="spinner" />
@@ -245,7 +209,7 @@ const AdminPanel = () => {
   if (authError === "NOT_AUTHENTICATED") {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
-        <h2 className="text-2xl font-semibold mb-4">You must be an admin to access this page.</h2>
+        <h2 className="text-2xl font-semibold mb-4">Please log in as an admin to access this page.</h2>
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded"
           onClick={() => navigate('/home')}
@@ -334,8 +298,21 @@ if (!authError) {
                                       borderBottom: '1px solid #dee2e6', 
                                       padding: '8px'
                                     }}>
-                                      <strong>Rating: </strong>{review.rating}<br/>
+                                      <strong>Rating: </strong>{review.rating}
+                                      {review.username && <> by {review.username}</>}<br/>
                                       <strong>Comment: </strong>{review.comment}
+                                      {review.id && (
+                                        <div>
+                                          <Button
+                                            size="sm"
+                                            variant="link"
+                                            className="text-danger p-0"
+                                            onClick={() => handleDeleteReview(product.id, review.id)}
+                                          >
+                                            Delete review
+                                          </Button>
+                                        </div>
+                                      )}
                                     </div>
                                   ))
                                 : "No Reviews";
@@ -346,8 +323,8 @@ if (!authError) {
                         <td>{Array.isArray(product.category) ? product.category.join(", ") : product.category}</td>
                         <td>
                             <img 
-                              src={product.product_img}
-                              alt='Image not found'
+                              src={product.product_img || 'https://i.ibb.co/123pvjr/300x200.png'}
+                              alt={product.name}
                               style={{ width: '50px', height: '50px', objectFit: 'scale-down' }}
                             />
                         </td>
@@ -404,7 +381,7 @@ if (!authError) {
                     {customers.map(customer => (
                       <tr key={customer.id}>
                         <td>{customer.id}</td>
-                        <td>{customer.name}</td>
+                        <td>{[customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.name || '—'}</td>
                         <td>{customer.email}</td>
                         <td>{customer.lastLogin}</td>
                         <td>
@@ -523,15 +500,18 @@ if (!authError) {
                       <th>Total</th>
                       <th>Shipping Address</th>
                       <th>Payment Method</th>
-                      <th>Status</th>
+                      <th>Status / Tracking</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orders.map(order => (
                       <tr key={order.id}>
                         <td>{order.id}</td>
-                        <td>{order.customerId}</td>
-                        <td>{order.orderDate}</td>
+                        <td>
+                          {order.customerId ?? 'Guest'}
+                          {order.customerEmail && <div className="small text-muted">{order.customerEmail}</div>}
+                        </td>
+                        <td>{new Date(order.orderDate).toLocaleString()}</td>
                         <td>
                           <div style={{ 
                             maxHeight: '100px', 
@@ -550,9 +530,9 @@ if (!authError) {
                               <tbody>
                                 {order.orderItems?.map(item => (
                                   <tr key={item.productId}>
-                                    <td>{item.productId}</td>
+                                    <td>{item.name ? `${item.name} (#${item.productId})` : item.productId}</td>
                                     <td>{item.quantity}</td>
-                                    <td>${item.price?.toFixed(2) || '0.00'}</td>
+                                    <td>${itemPrice(item).toFixed(2)}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -562,7 +542,7 @@ if (!authError) {
                         <td>${order.totalAmount}</td>
                         <td>{order.shippingAddress}</td>
                         <td>{order.paymentMethod}</td>
-                        <td>{order.orderStatus}</td>
+                        <td><OrderStatusEditor order={order} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -831,8 +811,8 @@ if (!authError) {
                           <tr key={index}>
                             <td>{product?.name || `Product ${item.productId}`}</td>
                             <td>{item.quantity}</td>
-                            <td>${item.price?.toFixed(2) || '0.00'}</td>
-                            <td>${((item.quantity * item.price) || 0).toFixed(2)}</td>
+                            <td>${itemPrice(item).toFixed(2)}</td>
+                            <td>${(item.quantity * itemPrice(item)).toFixed(2)}</td>
                           </tr>
                         );
                       })}

@@ -1,7 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { Container, Row, Col, Button, Carousel } from 'react-bootstrap';
 import { useData } from '../../contexts/DataContext';
-import { useCart } from '../../contexts/CartContext';
 import ProductCard from '../../components/ProductCard';
 
 // FIXED:

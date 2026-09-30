@@ -23,8 +23,6 @@ function Cart() {
     navigate('/checkout');
   };
 
-  const shippingCost = cartItems.length > 0 ? 5.0 : 0;
-
   return (
     <Container className="mt-4">
       <h2 className="mb-4">Your Cart</h2>
@@ -52,13 +50,17 @@ function Cart() {
                 {cartItems.map((item) => (
                   <tr key={item.id}>
                     <td>{item.name}</td>
-                    <td>${item.price}</td>
+                    <td>${Number(item.price).toFixed(2)}</td>
                     <td>
                       <Form.Control
                         type="number"
                         min="1"
                         value={item.quantity}
-                        onChange={(e) => updateQuantity(item.id, e.target.value)}
+                        onChange={(e) => {
+                          // Input values are strings; the cart (and the server) need whole numbers.
+                          const quantity = parseInt(e.target.value, 10);
+                          if (quantity >= 1) updateQuantity(item.id, quantity);
+                        }}
                       />
                     </td>
                     <td>${(item.price * item.quantity).toFixed(2)}</td>
@@ -85,16 +87,8 @@ function Cart() {
                   <td>${getCartTotal().toFixed(2)}</td>
                 </tr>
                 <tr>
-                  <td>Shipping:</td>
-                  <td>${shippingCost.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Total:</strong>
-                  </td>
-                  <td>
-                    <strong>${(getCartTotal() + shippingCost).toFixed(2)}</strong>
-                  </td>
+                  <td>Tax:</td>
+                  <td className="text-muted">Calculated at checkout</td>
                 </tr>
               </tbody>
             </Table>

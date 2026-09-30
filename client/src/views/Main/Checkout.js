@@ -1,214 +1,119 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useCart } from '../../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
-import axios from '../../api/axios'; 
+import axios from '../../api/axios';
 import SquarePaymentForm from '../../components/SquarePaymentForm.js';
-import KlarnaPaymentForm from '../../components/KlarnaPaymentForm.js';
-import { useSavedCards } from '../../contexts/SavedCardsContext.js';
-import useGeoLocation from '../../Hooks/locationHook.js'; 
+import useGeoLocation from '../../Hooks/locationHook.js';
+import { useAuth } from '../../contexts/AuthContext';
 
-// FIXED — CRITICAL (security):
-// 1. Raw card data (cardNumber, expiryDate, cvv) is NO LONGER sent to the backend.
-//    CreditCardForm must tokenize the card using your payment processor's client-side
-//    SDK (e.g. Stripe.js, Square Web Payments SDK) and call onSubmit with a token only.
-//    The server receives a processor token — never raw PAN data. Sending raw card data
-//    through your own server puts you in PCI DSS scope and creates serious liability.
-//
-// 2. Cart item prices are NO LONGER trusted from the client. The payment API call now
-//    sends only product IDs and quantities. The server looks up prices from its own
-//    database and calculates the authoritative total. A client could otherwise manipulate
-//    prices before the request is sent.
-//
-// FIXED — SIGNIFICANT:
-// 3. Changed `import axios from 'axios'` → `import axios from '../../api/axios'`.
-//    The direct axios import bypassed your configured base URL, auth interceptors, and
-//    error handling, meaning payment requests went to a different origin configuration.
-//
-// 4. Removed `afterpayToken` and `klarnaToken` state — both were set but never read.
-//
-// 5. Removed `{ replace: true }` from continueShopping navigation. Replacing the history
-//    entry before checkout is complete prevents the user from returning to checkout with
-//    the back button, which is unexpected. replace: true is only used post-purchase.
-//
-// 6. Expanded STATE_TAX_RATES to all 50 US states + DC. Previously only 3 states were
-//    listed, so every other state silently applied 0% tax.
+// Checkout is server-authoritative (see Controllers/Checkout.js):
+//   - The server prices the cart it has stored, from the products table, and adds tax.
+//     This page only displays that quote — it never sends prices or totals.
+//   - Card data never touches our server: Square's SDK turns it into a one-time token.
+//   - PayPal orders are created and captured by the server with the quoted amount.
 
-const API_ENDPOINTS = {
-  // Server receives a processor token + item IDs/quantities only — never raw card data
-  // creditCard: '/api/payments/credit-card',
-  paypal: '/api/payments/paypal/capture',
-  square: '/api/initialize',
-};
+const US_STATES = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA',
+  'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM',
+  'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA',
+  'WV', 'WI', 'WY',
+];
 
-// Tax rates for all 50 US states + DC (as of 2024 — verify with your tax service)
-const STATE_TAX_RATES = {
-  AL: 0.04,   AK: 0.0,    AZ: 0.056,  AR: 0.065,  CA: 0.0725,
-  CO: 0.029,  CT: 0.0635, DE: 0.0,    FL: 0.06,   GA: 0.04,
-  HI: 0.04,   ID: 0.06,   IL: 0.0625, IN: 0.07,   IA: 0.06,
-  KS: 0.065,  KY: 0.06,   LA: 0.0445, ME: 0.055,  MD: 0.06,
-  MA: 0.0625, MI: 0.06,   MN: 0.06875,MS: 0.07,   MO: 0.04225,
-  MT: 0.0,    NE: 0.055,  NV: 0.0685, NH: 0.0,    NJ: 0.06625,
-  NM: 0.05125,NY: 0.04,   NC: 0.0475, ND: 0.05,   OH: 0.0575,
-  OK: 0.045,  OR: 0.0,    PA: 0.06,   RI: 0.07,   SC: 0.06,
-  SD: 0.045,  TN: 0.07,   TX: 0.0625, UT: 0.0485, VT: 0.06,
-  VA: 0.053,  WA: 0.065,  WV: 0.06,   WI: 0.05,   WY: 0.04,
-  DC: 0.06,
-};
+const dollars = (cents) => `$${(cents / 100).toFixed(2)}`;
+
+// useGeoLocation returns a US state code ("CA") or null.
+const stateFromLocation = (code) => (US_STATES.includes(code) ? code : '');
 
 function Checkout() {
   const navigate = useNavigate();
-  const { cartItems: cart, getCartTotal, cartHasDonation } = useCart();
-  const isDonation = cartHasDonation();
+  const { cartItems: cart, cartHasDonation, loadCartFromDatabase } = useCart();
+  const isDonationOnly = cart.length > 0 && cart.every((item) => item.isDonation);
 
-  const [paymentMethod, setPaymentMethod] = useState('creditCard');
+  const [paymentMethod, setPaymentMethod] = useState('square');
+  const [shippingState, setShippingState] = useState('');
+  const [shippingAddress, setShippingAddress] = useState('');
+  const { user } = useAuth();
+  const [email, setEmail] = useState('');
+  // Logged-in users get their account email pre-filled (they can still change it).
+  useEffect(() => {
+    if (user?.email) setEmail((current) => current || user.email);
+  }, [user]);
+  const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const [quote, setQuote] = useState(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState(null);
 
-  const [shippingState, setShippingState] = useState('');
-  const [selectedSavedCard, setSelectedSavedCard] = useState('');
-  const [useNewCard, setUseNewCard] = useState(true);
-
-  const { savedCards, defaultCard, fetchSavedCards, addSavedCard } = useSavedCards();
-
-  const [locationData, setLocationData] = useState(null);
-  
-  // const geoLocation = useGeoLocation();
+  // Pre-fill the state from the browser location, but never overwrite a user's choice.
   const location = useGeoLocation();
-
   useEffect(() => {
-      if (location) {
-          setLocationData(location?.region || location);
-      };
-      console.log("Location data updated:", location);
+    const detected = stateFromLocation(location);
+    if (detected) setShippingState((current) => current || detected);
   }, [location]);
 
-  // Load saved cards when checkout mounts (context deduplicates calls)
+  // Ask the server for the price whenever the cart or the state changes.
   useEffect(() => {
-    fetchSavedCards();
-  }, [fetchSavedCards]);
-
-  // Pre-select the customer's default card once cards are loaded
-  useEffect(() => {
-    if (defaultCard && !selectedSavedCard) {
-      setSelectedSavedCard(defaultCard.id);
-      setUseNewCard(false);
+    if (cart.length === 0 || (!isDonationOnly && !shippingState)) {
+      setQuote(null);
+      return;
     }
-  }, [defaultCard]);
 
-  const calculateSalesTax = () => {
-    if (isDonation) return 0;
-    const subtotal = getCartTotal();
-    const taxRate = STATE_TAX_RATES[location?.region || location] || 0;
-    return subtotal * taxRate;
+    let cancelled = false;
+    setQuoteLoading(true);
+    axios.post('/api/checkout/quote', { shippingState })
+      .then((res) => {
+        if (!cancelled) { setQuote(res.data.quote); setError(''); }
+      })
+      .catch((err) => {
+        if (!cancelled) { setQuote(null); setError(err.response?.data?.message || 'Could not price your order.'); }
+      })
+      .finally(() => { if (!cancelled) setQuoteLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [cart, shippingState, isDonationOnly]);
+
+  const checkoutDetails = () => ({ shippingState, shippingAddress, email: email.trim() });
+
+  const handleSuccess = async (data) => {
+    setCompletedOrder(data);
+    await loadCartFromDatabase(); // the server emptied the cart
   };
 
-  const calculateFinalTotal = () => {
-    return getCartTotal() + calculateSalesTax();
-  };
-
-  const continueShopping = () => {
-    // FIXED: removed { replace: true } — should only replace history after a completed purchase
-    navigate('/browse');
-  };
-
-  /**
-   * Builds a minimal, server-safe cart payload.
-   * FIXED: sends only id and quantity — never client-supplied prices.
-   * The server calculates the authoritative total from its own price data.
-   */
-  const buildCartPayload = () =>
-    cart.map((item) => ({ id: item.id, quantity: item.quantity }));
-
-  /**
-   * Handles credit card payment.
-   * FIXED: `formData` now contains only a processor TOKEN (e.g. from Stripe.js /
-   * Square Web Payments SDK) — never raw card numbers, expiry, or CVV.
-   * CreditCardForm is responsible for tokenizing via the processor's client SDK
-   * before calling this handler.
-   */
-
-  const handleSquarePaymentSuccess = async (paymentResult) => {
+  const handleSquareToken = async ({ token, idempotencyKey }) => {
     setLoading(true);
     setError('');
-
     try {
-      const response = await axios.post(API_ENDPOINTS.square, {
-        sourceId: paymentResult.token,
-        amount: calculateFinalTotal(),
-        currency: 'USD',
-        isDonation,
-        shippingState: isDonation ? null : shippingState,
-        items: buildCartPayload(), // FIXED: IDs + quantities only
-        paymentDetails: paymentResult.details,
+      const res = await axios.post('/api/checkout/square', {
+        sourceId: token,
+        idempotencyKey,
+        ...checkoutDetails(),
       });
-
-      if (response.data.success) {
-        setSuccess(true);
-      } else {
-        setError(response.data.message || 'Square payment failed. Please try again.');
-      }
+      await handleSuccess(res.data);
     } catch (err) {
-      console.error('Square payment processing error:', err);
-      setError(
-        err.response?.data?.message ||
-          'An error occurred processing your Square payment. Please try again.'
-      );
+      setError(err.response?.data?.message || 'An error occurred processing your payment. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSquarePaymentError = (errorMessage) => {
-    setError(errorMessage);
-    setLoading(false);
+  const createPayPalOrder = async () => {
+    setError('');
+    const res = await axios.post('/api/checkout/paypal/order', checkoutDetails());
+    return res.data.id;
   };
 
-  const createPayPalOrder = (data, actions) => {
-    const subtotal = getCartTotal();
-    const tax = calculateSalesTax(); // 0 when isDonation
-    const total = calculateFinalTotal();
-
-    const purchaseUnit = {
-      amount: {
-        currency_code: 'USD',
-        value: total.toFixed(2),
-        breakdown: {
-          item_total: { currency_code: 'USD', value: subtotal.toFixed(2) },
-          ...(isDonation ? {} : { tax_total: { currency_code: 'USD', value: tax.toFixed(2) } }),
-        },
-      },
-      items: cart.map((item) => ({
-        name: item.name,
-        quantity: item.quantity.toString(),
-        unit_amount: { currency_code: 'USD', value: item.price.toFixed(2) },
-        ...(isDonation ? { category: 'DONATION' } : {}),
-      })),
-    };
-
-    return actions.order.create({ purchase_units: [purchaseUnit] });
-  };
-
-  const onPayPalApprove = async (data, actions) => {
+  const onPayPalApprove = async (data) => {
     try {
-      const order = await actions.order.capture();
-      const response = await axios.post(API_ENDPOINTS.paypal, {
-        orderID: order.id,
-        payerID: order.payer.payer_id,
-        shippingState,
-        items: buildCartPayload(), // FIXED: IDs + quantities only
+      const res = await axios.post('/api/checkout/paypal/capture', {
+        orderID: data.orderID,
+        ...checkoutDetails(),
       });
-
-      if (response.data.success) {
-        setSuccess(true);
-      } else {
-        setError('PayPal payment verification failed.');
-      }
+      await handleSuccess(res.data);
     } catch (err) {
-      console.error('PayPal payment error:', err);
-      setError('PayPal payment failed. Please try again.');
+      setError(err.response?.data?.message || 'PayPal payment failed. Please try again.');
     }
   };
 
@@ -216,12 +121,29 @@ function Checkout() {
     setError('');
   }, [paymentMethod]);
 
-  if (success) {
+  // Payment methods allowed for this shipping state come from the server quote (TODO 4).
+  const paymentMethods = quote?.paymentMethods || [
+    { id: 'square', label: 'Card (Square)' },
+    { id: 'paypal', label: 'PayPal' },
+  ];
+  useEffect(() => {
+    if (quote && !quote.paymentMethods.some((m) => m.id === paymentMethod)) {
+      setPaymentMethod(quote.paymentMethods[0]?.id || '');
+    }
+  }, [quote, paymentMethod]);
+
+  if (completedOrder) {
     return (
       <Container className="mt-4">
         <Alert variant="success">
           <Alert.Heading>Payment Successful!</Alert.Heading>
-          <p>Thank you for your purchase. Your order has been processed successfully.</p>
+          <p>
+            Thank you for your {cartHasDonation() ? 'support' : 'purchase'}. Order #{completedOrder.orderId} for{' '}
+            {dollars(completedOrder.totalCents)} has been processed.
+          </p>
+          {completedOrder.receiptEmail && (
+            <p className="mb-0">A receipt is on its way to <strong>{completedOrder.receiptEmail}</strong>.</p>
+          )}
         </Alert>
         <div className="text-center">
           <Button variant="primary" onClick={() => navigate('/browse', { replace: true })} size="lg">
@@ -232,13 +154,15 @@ function Checkout() {
     );
   }
 
+  const readyToPay = Boolean(quote) && !quoteLoading && !loading && emailLooksValid;
+
   return (
     <Container className="mt-4">
       <h2 className="mb-4">Checkout</h2>
       {cart.length === 0 ? (
         <div className="text-center">
           <h4>Your cart is empty</h4>
-          <Button variant="primary" onClick={continueShopping}>
+          <Button variant="primary" onClick={() => navigate('/browse')}>
             Continue Shopping
           </Button>
         </div>
@@ -253,60 +177,98 @@ function Checkout() {
           )}
 
           <Col md={6}>
+            <Form.Group className="mb-4" controlId="receiptEmail">
+              <Form.Label>Email for your receipt</Form.Label>
+              <Form.Control
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                isInvalid={email.length > 0 && !emailLooksValid}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+              <Form.Control.Feedback type="invalid">Please enter a valid email address.</Form.Control.Feedback>
+            </Form.Group>
+
+            {!isDonationOnly && (
+              <>
+                <h4>Shipping</h4>
+                <Form className="mb-4">
+                  <Form.Group className="mb-3" controlId="shippingState">
+                    <Form.Label>State</Form.Label>
+                    <Form.Select value={shippingState} onChange={(e) => setShippingState(e.target.value)}>
+                      <option value="">Choose a state…</option>
+                      {US_STATES.map((code) => (
+                        <option key={code} value={code}>{code}</option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                  <Form.Group controlId="shippingAddress">
+                    <Form.Label>Street address</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      maxLength={255}
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      placeholder="123 Main St, City, ZIP"
+                    />
+                  </Form.Group>
+                </Form>
+              </>
+            )}
+
             <h4>Order Summary</h4>
             <div className="border rounded p-3 mb-4">
-              {cart.map((item) => (
-                <div
-                  key={item.id}
-                  className="d-flex justify-content-between align-items-center mb-2"
-                >
-                  <span>
-                    {item.name} x {item.quantity}
-                  </span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-              <hr />
-              <div className="d-flex justify-content-between mb-2">
-                <span>Shipping State</span>
-                <span>{locationData ? location?.region || location : 'Loading'}</span>
-              </div>
-              <div className="d-flex justify-content-between mb-2">
-                <span>Subtotal:</span>
-                <span>${getCartTotal().toFixed(2)}</span>
-              </div>
-              {isDonation ? (
-                <div className="d-flex justify-content-between mb-2 text-success">
-                  <span>Tax:</span>
-                  <span>None (Donation)</span>
-                </div>
-              ) : (
-                <div className="d-flex justify-content-between mb-2">
-                  <span>
-                    Sales Tax ({((STATE_TAX_RATES[location?.region || location] || 0) * 100).toFixed(2)}%):
-                  </span>
-                  <span>${calculateSalesTax().toFixed(2)}</span>
-                </div>
+              {quoteLoading && (
+                <div className="text-center my-2"><Spinner animation="border" size="sm" /> Calculating…</div>
               )}
-              <div className="d-flex justify-content-between mb-2">
-                <strong>Total:</strong>
-                <strong>${calculateFinalTotal().toFixed(2)}</strong>
-              </div>
+              {!quote && !quoteLoading && (
+                <p className="text-muted mb-0">Choose a shipping state to see your total.</p>
+              )}
+              {quote && !quoteLoading && (
+                <>
+                  {quote.lines.map((line) => (
+                    <div key={line.productId} className="d-flex justify-content-between align-items-center mb-2">
+                      <span>{line.name} x {line.quantity}</span>
+                      <span>{dollars(line.lineTotalCents)}</span>
+                    </div>
+                  ))}
+                  <hr />
+                  <div className="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span>{dollars(quote.subtotalCents)}</span>
+                  </div>
+                  {quote.requiresShipping ? (
+                    <div className="d-flex justify-content-between mb-2">
+                      <span>Sales Tax ({quote.shippingState}, {(quote.taxRate * 100).toFixed(2)}%):</span>
+                      <span>{dollars(quote.taxCents)}</span>
+                    </div>
+                  ) : (
+                    <div className="d-flex justify-content-between mb-2 text-success">
+                      <span>Tax:</span>
+                      <span>None (Donation)</span>
+                    </div>
+                  )}
+                  <div className="d-flex justify-content-between mb-2">
+                    <strong>Total:</strong>
+                    <strong>{dollars(quote.totalCents)}</strong>
+                  </div>
+                </>
+              )}
             </div>
           </Col>
 
           <Col md={6}>
             <h4>Payment Method</h4>
             <Form className="mb-4">
-              {['square', 'paypal'].map((method) => (
+              {paymentMethods.map(({ id: method, label }) => (
                 <Form.Check
                   key={method}
                   type="radio"
-                  label={
-                    method === 'creditCard'
-                      ? 'Credit Card'
-                      : method.charAt(0).toUpperCase() + method.slice(1)
-                  }
+                  id={`payment-${method}`}
+                  label={label}
                   name="paymentMethod"
                   value={method}
                   checked={paymentMethod === method}
@@ -316,44 +278,41 @@ function Checkout() {
               ))}
             </Form>
 
-            {paymentMethod === 'square' && (
-              <div>
-                <SquarePaymentForm
-                  amount={calculateFinalTotal()}
-                  onPaymentSuccess={handleSquarePaymentSuccess}
-                  onPaymentError={handleSquarePaymentError}
-                  loading={loading}
-                  disabled={!shippingState}
-                />
-                {!shippingState && (
-                  <small className="text-muted">
-                    Please select a shipping state to continue
-                  </small>
-                )}
-              </div>
+            {quote && !emailLooksValid && (
+              <Alert variant="info">Enter an email for your receipt to continue.</Alert>
             )}
 
-            {paymentMethod === 'paypal' && (
-              <div>
-                {locationData ? (
-                  <PayPalScriptProvider
-                    options={{
-                      'client-id': process.env.REACT_APP_PAYPAL_CLIENT_ID,
-                      currency: 'USD',
-                    }}
-                  >
-                    <PayPalButtons
-                      createOrder={createPayPalOrder}
-                      onApprove={onPayPalApprove}
-                      style={{ layout: 'vertical' }}
-                    />
-                  </PayPalScriptProvider>
-                ) : (
-                  <Alert variant="info">
-                    Please select a shipping state to continue with PayPal
-                  </Alert>
-                )}
-              </div>
+            {!quote && !quoteLoading && (
+              <Alert variant="info">
+                {isDonationOnly ? 'Loading your total…' : 'Choose a shipping state to continue.'}
+              </Alert>
+            )}
+
+            {paymentMethod === 'square' && quote && (
+              <SquarePaymentForm
+                amount={quote.totalCents / 100}
+                onTokenReceived={handleSquareToken}
+                disabled={!readyToPay}
+              />
+            )}
+
+            {paymentMethod === 'paypal' && quote && (
+              <PayPalScriptProvider
+                options={{
+                  'client-id': process.env.REACT_APP_PAYPAL_CLIENT_ID,
+                  currency: 'USD',
+                }}
+              >
+                <PayPalButtons
+                  // Re-create the buttons when the total changes so PayPal shows the right amount.
+                  forceReRender={[quote.totalCents]}
+                  disabled={!readyToPay}
+                  createOrder={createPayPalOrder}
+                  onApprove={onPayPalApprove}
+                  onError={() => setError('PayPal could not start the payment. Please try again.')}
+                  style={{ layout: 'vertical' }}
+                />
+              </PayPalScriptProvider>
             )}
           </Col>
         </Row>

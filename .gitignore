@@ -9,3 +9,9 @@ orders.json
 products.json
 transactions.json
 users.json
+
+# Private keys / certificates
+*.pem
+
+# Local SQLite database (test copy)
+data/

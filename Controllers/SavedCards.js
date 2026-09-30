@@ -1,12 +1,6 @@
 import Customer from '../models/customerModel.js';
+import { handleError } from '../utils/handleError.js';
 
-const handleError = (res, context, error) => {
-  console.error(context, error);
-  return res.status(500).json({
-    message: `${context} failed`,
-    error: error?.message || String(error),
-  });
-};
 
 /**
  * GET /api/user/saved-cards
@@ -17,12 +11,13 @@ const handleError = (res, context, error) => {
 export const getSavedCards = async (req, res) => {
   try {
     const customer = await Customer.findOne({
-      where: { id: req.userID },
+      where: { email: req.email },
       attributes: ['id', 'savedCards'],
     });
 
+    // Accounts without a shop profile (e.g. admin) simply have no saved cards.
     if (!customer) {
-      return res.status(404).json({ message: 'Customer not found' });
+      return res.status(200).json({ cards: [] });
     }
 
     const cards = customer.savedCards || [];
@@ -52,7 +47,7 @@ export const addSavedCard = async (req, res) => {
       return res.status(400).json({ message: 'Missing required card fields' });
     }
 
-    const customer = await Customer.findOne({ where: { id: req.userID } });
+    const customer = await Customer.findOne({ where: { email: req.email } });
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
@@ -95,7 +90,7 @@ export const deleteSavedCard = async (req, res) => {
   try {
     const { cardId } = req.params;
 
-    const customer = await Customer.findOne({ where: { id: req.userID } });
+    const customer = await Customer.findOne({ where: { email: req.email } });
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
@@ -129,7 +124,7 @@ export const setDefaultCard = async (req, res) => {
   try {
     const { cardId } = req.params;
 
-    const customer = await Customer.findOne({ where: { id: req.userID } });
+    const customer = await Customer.findOne({ where: { email: req.email } });
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }

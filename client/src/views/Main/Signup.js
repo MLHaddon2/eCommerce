@@ -3,20 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
 import SignupForm from '../../components/SignupForm';
 import { useAuth } from '../../contexts/AuthContext';
-import { useCart } from '../../contexts/CartContext';
 
-// FIXED:
-// - Removed client-side IP fetch from https://api.ipify.org. The browser fetching
-//   its own IP via a public third-party service is an unnecessary external dependency
-//   that also has GDPR/CCPA implications. The server captures IP from req.ip or
-//   X-Forwarded-For headers and appends the ipHistory entry itself.
-// - Fixed login() call signature to use { token, user } object form, matching
-//   the AuthContext API. Previously called as login(accessToken, { id, username })
-//   with two separate arguments, which is the wrong signature and would have caused
-//   the auth context to receive undefined for the user object.
+// Register creates the login and the customer profile in one request. The server
+// sets the httpOnly auth cookies and moves any guest cart onto the new account.
 
 function Signup() {
-  const { cartItems } = useCart();
   const [user, setUser] = useState({
     firstName: '',
     lastName: '',
@@ -47,28 +38,18 @@ function Signup() {
     }
 
     try {
-      const response = await axios.post('api/register', {
+      const response = await axios.post('/api/register', {
         username: user.username,
         email: user.email,
         password: user.password,
         confPwd: user.confPwd,
-      });
-      const { accessToken, userID, username } = response.data;
-
-      // IP address and timestamp are captured server-side from req.ip.
-      // The client sends only data the server can't derive itself.
-      await axios.post('api/customers/create', {
         firstName: user.firstName,
         lastName: user.lastName,
-        email: user.email,
         address: user.address,
-        cartItems: cartItems || [],
-        totalOrders: 0,
-        totalSpent: 0,
       });
+      const { accessToken, user: newUser } = response.data;
 
-      // Use consistent { token, user } signature matching AuthContext.login()  
-      login({ token: accessToken, user: { id: userID, username } });
+      await login({ token: accessToken, user: newUser });
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'An error occurred during signup.');

@@ -57,7 +57,6 @@ export const DataProvider = ({ children }) => {
       setErrors(prev => ({ ...prev, products: null }));
       
       const res = await axios.get('/api/products/getallhistory');
-      console.log("Products fetched:", res.data);
       setProducts(res.data || []);
       return res.data;
     } catch (error) {
@@ -76,7 +75,6 @@ export const DataProvider = ({ children }) => {
       
       const res = await axios.get(`/api/products/get/${id}`);
       if (res.status === 200) {
-        console.log(res);
         setProduct(res.data.product);
         return res.data.product;
       } else {
@@ -200,7 +198,6 @@ export const DataProvider = ({ children }) => {
       setErrors(prev => ({ ...prev, customers: null }));
       
       const res = await axios.get('/api/customers/get');
-      console.log("Customers fetched:", res.data);
       setCustomers(res.data || []);
       return res.data;
     } catch (error) {
@@ -293,7 +290,6 @@ export const DataProvider = ({ children }) => {
       setErrors(prev => ({ ...prev, transactions: null }));
       
       const res = await axios.get('/api/transactions/get');
-      console.log("Transactions fetched:", res.data);
       setTransactions(res.data || []);
       return res.data;
     } catch (error) {
@@ -405,7 +401,6 @@ export const DataProvider = ({ children }) => {
       setErrors(prev => ({ ...prev, orders: null }));
       
       const res = await axios.get('/api/orders/get');
-      console.log("Orders fetched:", res.data);
       setOrders(res.data || []);
       return res.data;
     } catch (error) {
@@ -473,16 +468,18 @@ export const DataProvider = ({ children }) => {
     }
   }, [order]);
 
-  const updateOrderStatus = useCallback(async (id, status) => {
+  // PATCH /api/orders/:id/status — logs the change and emails the customer where relevant.
+  // tracking: { trackingCarrier, trackingNumber } (optional). Returns { updatedOrder, emailed }.
+  const updateOrderStatus = useCallback(async (id, status, tracking = {}) => {
     try {
-      const res = await axios.put(`/api/orders/update/${id}`, { id, status });
+      const res = await axios.patch(`/api/orders/${id}/status`, { status, ...tracking });
       if (res.status === 200) {
-        const updatedOrder = res.data.updatedOrder || res.data;
+        const updatedOrder = res.data.updatedOrder;
         setOrders(prev => prev.map(o => o.id === id ? updatedOrder : o));
         if (order && order.id === id) {
           setOrder(updatedOrder);
         }
-        return updatedOrder;
+        return res.data;
       } else {
         throw new Error('Failed to update order status');
       }
@@ -517,7 +514,6 @@ export const DataProvider = ({ children }) => {
       setErrors(prev => ({ ...prev, ipHistories: null }));
       
       const res = await axios.get('/api/ip-history');
-      console.log("IP Histories fetched:", res.data);
       setIpHistories(res.data || []);
       return res.data;
     } catch (error) {
