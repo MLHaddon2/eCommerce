@@ -29,9 +29,10 @@ const transport = process.env.SMTP_HOST && !isTest
 export const mailMode = process.env.SMTP_HOST && !isTest ? 'smtp' : isTest ? 'test' : 'outbox';
 
 // Never throws: a failed email must not fail the checkout or status change that triggered it.
-export const sendMail = async ({ to, subject, text, html }) => {
+// Returns null when the message could not be sent, for callers that need to know.
+export const sendMail = async ({ to, subject, text, html, replyTo }) => {
   if (!to) return null;
-  const message = { from: process.env.MAIL_FROM || 'Shop <no-reply@localhost>', to, subject, text, html };
+  const message = { from: process.env.MAIL_FROM || 'Shop <no-reply@localhost>', to, replyTo, subject, text, html };
   try {
     const info = await transport.sendMail(message);
     if (mailMode === 'test') {

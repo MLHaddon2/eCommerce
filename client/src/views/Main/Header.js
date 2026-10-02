@@ -21,6 +21,7 @@ import {
   Package,
   CreditCard,
   LogOut,
+  Mail,
   Menu,
   X,
 } from 'lucide-react';
@@ -67,6 +68,10 @@ function Header() {
           <span className="d-none d-sm-inline">Profile</span>
         </Nav.Link>
       )}
+      <Nav.Link as={Link} to="/contact" className="nav-link d-flex align-items-center px-3 py-2">
+        <Mail size={18} className="me-2" />
+        <span className="d-none d-sm-inline">Contact</span>
+      </Nav.Link>
     </>
   );
 
@@ -167,13 +172,16 @@ function Header() {
             <span className="d-none d-md-inline">ECommerce</span>
           </Navbar.Brand>
 
-          <Navbar.Toggle
-            aria-controls="responsive-navbar-nav"
-            className="border-0"
-            onClick={(e) => { e.stopPropagation(); setShowSidebar(true); }}
+          {/* Plain button rather than Navbar.Toggle: Navbar.Toggle also expands
+              Navbar.Collapse, which opened an inline dropdown alongside the sidebar. */}
+          <button
+            type="button"
+            className="navbar-toggler border-0"
+            aria-label="Open menu"
+            onClick={() => setShowSidebar(true)}
           >
             <Menu size={20} />
-          </Navbar.Toggle>
+          </button>
 
           <Navbar.Collapse id="responsive-navbar-nav">
             <Nav className="me-auto d-flex align-items-center">

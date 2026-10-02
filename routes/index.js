@@ -5,6 +5,7 @@ import { getCustomer, getCustomers, createCustomer, updateCustomer, deleteCustom
 import { getTransactions, getTransaction, createTransaction, updateTransaction, deleteTransaction } from '../Controllers/Transactions.js';
 import { getOrders, getOrder, createOrder, updateOrder, updateOrderStatus, deleteOrder } from '../Controllers/Orders.js';
 import { getMyCustomer, updateMyCustomer, getMyOrders, changeMyPassword, changeMyUsername, changeMyEmail } from '../Controllers/Me.js';
+import { sendContactMessage } from '../Controllers/Contact.js';
 
 import cartRoutes from './cartRoutes.js';
 import ipHistoryRoutes from './ipHistoryRoutes.js';
@@ -102,6 +103,11 @@ router.use('/ip-history', ipHistoryRoutes);
    CHECKOUT (guests + logged-in users) — prices computed server-side
 --------------------------------------------------------- */
 router.use('/checkout', checkoutRoutes);
+
+/* ---------------------------------------------------------
+   CONTACT FORM (guests + logged-in users)
+--------------------------------------------------------- */
+router.post('/contact', optionalAuth, sendContactMessage);
 
 /* ---------------------------------------------------------
    SAVED CARDS

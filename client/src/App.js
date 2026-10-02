@@ -1,6 +1,6 @@
 import "bootstrap/dist/css/bootstrap.css";
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import Home from "./views/Main/Home";
 import Login from "./views/Main/Login.js";
 import Signup from "./views/Main/Signup.js";
@@ -10,6 +10,7 @@ import Cart from './views/Main/Cart.js';
 import Checkout from './views/Main/Checkout.js';
 import Account from './views/Main/Account.js';
 import ProductPage from './views/Main/ProductPage.js';
+import Contact from './views/Main/Contact.js';
 import AdminPanel from './views/Admin/AdminPanel.js';
 import { AuthProvider } from './contexts/AuthContext.js';
 import { DataProvider } from './contexts/DataContext.js';
@@ -53,6 +54,9 @@ function App() {
               <Route path="/product/:id">
                 <Route index element={ <ProductPage /> } />
               </Route>
+              <Route path="/contact">
+                <Route index element={ <Contact /> } />
+              </Route>
               <Route path="/adminpanel">
                 <Route index element={ <AdminPanel /> } />
               </Route>
@@ -61,7 +65,9 @@ function App() {
           <div className="container">
             <div className="row">
               <div className="col-12">
-                <p>Copyright © Mike L. Haddon II. All rights reserved.</p>
+                <p>
+                  Copyright © Mike L. Haddon II. All rights reserved. · <Link to="/contact">Contact Us</Link>
+                </p>
               </div>
             </div>
           </div>

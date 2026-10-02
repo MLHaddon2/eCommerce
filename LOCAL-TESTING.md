@@ -36,9 +36,12 @@ You can also sign up new accounts.
 
 ## Emails
 
-No email is actually sent locally. Order receipts and shipping updates are saved as JSON files in
-`data/outbox/`, one per message. To send real email, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
-`SMTP_PASS` and `MAIL_FROM` in `.env`.
+No email is actually sent locally. Order receipts, shipping updates and Contact Us messages are saved
+as JSON files in `data/outbox/`, one per message. To send real email, set `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USER`, `SMTP_PASS` and `MAIL_FROM` in `.env`.
+
+Contact Us messages (the form at `/contact`) go to `skelesitesmlh@gmail.com`; set `CONTACT_EMAIL` in
+`.env` to send them somewhere else. See TODOs.js, TODO 26b, for the Gmail SMTP settings.
 
 ## Useful commands
 

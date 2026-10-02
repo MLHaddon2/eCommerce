@@ -32,14 +32,19 @@
 //DONE TODO 4: Check for shipping state using geolocation for paypal, klarna and afterpay to ensure that they are only offered as payment options when the customer is in a state where those payment options are available.
 
 // TODO 5: Add logistics integration for checkout (Order and transaction confirmations and item shipment integration specifically).
+// ADD UPS OR USPS
 
 // TODO 6: Add the ability to change your username and password on the account page. In fact add a tabbed account management page thats modular and scalable in nature.
+// DONE
 
 // TODO 7: The cart isn't persisting between page refreshes on the deployment build.
+// DONE
 
 // TODO 8: Check if a product is a donation and implement a payment option. also add an "All Items" tab on the products page.
+// DONE
 
 // TODO 9: Fully integrate paypal and square's production API keys for implementation of donation features.
+
 
 //PARTLY DONE TODO 10: Fully integrate https protocols after full deployment of the MVP and domain attainment.
 
@@ -212,5 +217,23 @@
 // Dev setup: nodemon.json stops the API restarting when client files or data/ change. Before, every saved
 // email in data/outbox restarted the server and dropped requests in flight.
 
+// ── Contact page (2026-10-01) ────────────────────────────────────────────────
+
+//DONE TODO 26: Build out the Contact Us page.
+// DONE: /contact (views/Main/Contact.js) shows the shop address, skelesitesmlh@gmail.com, and a message form.
+//       The form posts to POST /api/contact (Controllers/Contact.js), which emails the message to that address
+//       through utils/mailer.js with the visitor's address as Reply-To, so replying in Gmail answers them.
+//       Works for guests and logged-in users (email pre-filled, account name included). Linked from the header,
+//       the footer and the Home "Contact Us" button. Spam limits: 5 messages per hour per IP and a hidden
+//       honeypot field. tests/contact.test.js has 5 tests.
+//       To change the address: CONTACT_EMAIL in the server .env and REACT_APP_CONTACT_EMAIL in the client env.
+// TODO 26b: STILL NEEDED BY YOU. Until SMTP is set, messages are only saved to data/outbox/ and never reach the
+//       inbox. For Gmail, turn on 2-Step Verification for skelesitesmlh@gmail.com, create an App Password
+//       (https://myaccount.google.com/apppasswords), then set in the server .env:
+//         SMTP_HOST=smtp.gmail.com  SMTP_PORT=587  SMTP_USER=skelesitesmlh@gmail.com  SMTP_PASS=<app password>
+//         MAIL_FROM="Shoe Store <skelesitesmlh@gmail.com>"
+//       This also turns on real order receipts and shipping emails (TODO 5).
+
 // Still needs you: TODO 3 (Klarna/Afterpay sandbox credentials), 9 (production keys), 11b (rotate the committed
-// secrets), 16b (which EC2 host is live), 24b (a PayPal sandbox buyer run), 5b (a shipping provider).
+// secrets), 16b (which EC2 host is live), 24b (a PayPal sandbox buyer run), 5b (a shipping provider),
+// 26b (a Gmail app password so contact messages are really sent).

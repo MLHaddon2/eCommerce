@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { Container, Row, Col, Button, Carousel } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
 import ProductCard from '../../components/ProductCard';
 
@@ -75,7 +76,7 @@ function ECommerceHome() {
               Our customer service team is available 24/7 to assist you with any questions
               or concerns. Feel free to contact us anytime!
             </p>
-            <Button variant="secondary">Contact Us</Button>
+            <Button as={Link} to="/contact" variant="secondary">Contact Us</Button>
           </Col>
         </Row>
       </Container>
