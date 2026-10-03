@@ -40,42 +40,52 @@ function Header() {
   // The cart is loaded by AuthContext once it knows whether the user is logged in.
   const { cartItems, getCartTotal, getCartCount, removeFromCart } = useCart();
   const [showSidebar, setShowSidebar] = useState(false);
+  const closeSidebar = () => setShowSidebar(false);
+
+  // The nav links and the cart preview are plain render functions, not components declared
+  // in here: a component declared inside Header is a new type on every render, so React
+  // remounts it — which closed the open cart dropdown whenever the cart changed.
 
   /**
-   * NavLinks component — renders navigation with icons for intuitive, discoverable UX.
+   * Navigation links with icons. In the sidebar the labels are always shown and a
+   * click closes the sidebar; in the top bar the labels collapse on very narrow widths.
    */
-  const NavLinks = () => (
+  const renderNavLinks = (inSidebar = false) => {
+    const labelClass = inSidebar ? '' : 'd-none d-sm-inline';
+    const onClick = inSidebar ? closeSidebar : undefined;
+    return (
     <>
-      <Nav.Link as={Link} to="/home" className="nav-link d-flex align-items-center px-3 py-2">
+      <Nav.Link as={Link} to="/home" onClick={onClick} className="nav-link d-flex align-items-center px-3 py-2">
         <Home size={18} className="me-2" />
-        <span className="d-none d-sm-inline">Home</span>
+        <span className={labelClass}>Home</span>
       </Nav.Link>
-      <Nav.Link as={Link} to="/browse" className="nav-link d-flex align-items-center px-3 py-2">
+      <Nav.Link as={Link} to="/browse" onClick={onClick} className="nav-link d-flex align-items-center px-3 py-2">
         <Package size={18} className="me-2" />
-        <span className="d-none d-sm-inline">Products</span>
+        <span className={labelClass}>Products</span>
       </Nav.Link>
-      <Nav.Link as={Link} to="/cart" className="nav-link d-flex align-items-center px-3 py-2">
+      <Nav.Link as={Link} to="/cart" onClick={onClick} className="nav-link d-flex align-items-center px-3 py-2">
         <ShoppingCart size={18} className="me-2" />
-        <span className="d-none d-sm-inline">Cart</span>
+        <span className={labelClass}>Cart</span>
       </Nav.Link>
-      <Nav.Link as={Link} to="/checkout" className="nav-link d-flex align-items-center px-3 py-2">
+      <Nav.Link as={Link} to="/checkout" onClick={onClick} className="nav-link d-flex align-items-center px-3 py-2">
         <CreditCard size={18} className="me-2" />
-        <span className="d-none d-sm-inline">Checkout</span>
+        <span className={labelClass}>Checkout</span>
       </Nav.Link>
       {isAuthenticated && (
-        <Nav.Link as={Link} to="/account" className="nav-link d-flex align-items-center px-3 py-2">
+        <Nav.Link as={Link} to="/account" onClick={onClick} className="nav-link d-flex align-items-center px-3 py-2">
           <User size={18} className="me-2" />
-          <span className="d-none d-sm-inline">Profile</span>
+          <span className={labelClass}>Profile</span>
         </Nav.Link>
       )}
-      <Nav.Link as={Link} to="/contact" className="nav-link d-flex align-items-center px-3 py-2">
+      <Nav.Link as={Link} to="/contact" onClick={onClick} className="nav-link d-flex align-items-center px-3 py-2">
         <Mail size={18} className="me-2" />
-        <span className="d-none d-sm-inline">Contact</span>
+        <span className={labelClass}>Contact</span>
       </Nav.Link>
     </>
-  );
+    );
+  };
 
-  const CartPreview = () => {
+  const renderCartPreview = (id, onNavigate) => {
     if (!isAuthenticated && !cartItems) return null;
 
     const itemCount = getCartCount();
@@ -83,8 +93,10 @@ function Header() {
 
     return (
       <NavDropdown
+        id={id}
         title={
-          <div className="d-flex align-items-center position-relative">
+          // inline-flex keeps the dropdown caret on the same line as the icon.
+          <div className="d-inline-flex align-items-center position-relative">
             <ShoppingCart size={20} className="text-primary" />
             {itemCount > 0 && (
               <Badge
@@ -149,7 +161,7 @@ function Header() {
               </div>
             </>
           )}
-          <Button as={Link} to="/cart" variant="primary" size="sm" className="w-100">
+          <Button as={Link} to="/cart" onClick={onNavigate} variant="primary" size="sm" className="w-100">
             View Cart
           </Button>
         </div>
@@ -185,10 +197,10 @@ function Header() {
 
           <Navbar.Collapse id="responsive-navbar-nav">
             <Nav className="me-auto d-flex align-items-center">
-              <NavLinks />
+              {renderNavLinks()}
             </Nav>
             <Nav className="d-flex align-items-center">
-              <CartPreview />
+              {renderCartPreview('cart-dropdown')}
               {isAuthenticated ? (
                 <>
                   <Navbar.Text className="px-3 d-none d-lg-block">
@@ -207,7 +219,7 @@ function Header() {
               ) : (
                 <NavDropdown
                   title={
-                    <div className="d-flex align-items-center">
+                    <div className="d-inline-flex align-items-center">
                       <User size={18} className="me-1" />
                       <span className="d-none d-sm-inline">Account</span>
                     </div>
@@ -231,7 +243,7 @@ function Header() {
         </Container>
       </Navbar>
 
-      <Offcanvas show={showSidebar} onHide={() => setShowSidebar(false)} placement="start">
+      <Offcanvas show={showSidebar} onHide={closeSidebar} placement="start">
         <OffcanvasHeader closeButton>
           <OffcanvasTitle className="d-flex align-items-center">
             <Menu size={20} className="me-2" />
@@ -240,17 +252,17 @@ function Header() {
         </OffcanvasHeader>
         <OffcanvasBody>
           <Nav className="flex-column">
-            <NavLinks />
+            {renderNavLinks(true)}
           </Nav>
           <div className="mt-3 pt-3 border-top d-flex align-items-center gap-2">
-            <CartPreview />
+            {renderCartPreview('cart-dropdown-sidebar', closeSidebar)}
             {isAuthenticated ? (
               <>
                 <span className="text-muted small">Welcome, {username}</span>
                 <Button
                   variant="outline-secondary"
                   size="sm"
-                  onClick={() => { logout(); setShowSidebar(false); }}
+                  onClick={() => { logout(); closeSidebar(); }}
                   className="d-flex align-items-center ms-auto"
                 >
                   <LogOut size={16} className="me-2" />
@@ -259,10 +271,10 @@ function Header() {
               </>
             ) : (
               <>
-                <Nav.Link as={Link} to="/login" onClick={() => setShowSidebar(false)} className="d-flex align-items-center">
+                <Nav.Link as={Link} to="/login" onClick={closeSidebar} className="d-flex align-items-center">
                   <User size={16} className="me-2" />Login
                 </Nav.Link>
-                <Nav.Link as={Link} to="/signup" onClick={() => setShowSidebar(false)} className="d-flex align-items-center">
+                <Nav.Link as={Link} to="/signup" onClick={closeSidebar} className="d-flex align-items-center">
                   <User size={16} className="me-2" />Signup
                 </Nav.Link>
               </>

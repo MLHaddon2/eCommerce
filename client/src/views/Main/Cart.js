@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Table, Button, Form } from 'react-bootstrap';
-import { useCart } from '../../contexts/CartContext';
+import { useCart, maxQuantityFor } from '../../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 
 // FIXED:
@@ -10,6 +10,41 @@ import { useNavigate } from 'react-router-dom';
 // - Removed { replace: true } from continueShopping navigation — replacing the
 //   history entry here means the user can't go back to the cart from the browse
 //   page, which is unexpected UX. replace: true is only appropriate post-purchase.
+
+// The field keeps its own text while it's being edited, so it can be cleared and
+// retyped; the cart only changes once the text is a whole number of 1 or more.
+// Quantities above the stock are capped (see maxQuantityFor in CartContext).
+function QuantityInput({ item, onChange }) {
+  const [text, setText] = useState(String(item.quantity));
+  const max = maxQuantityFor(item);
+
+  // Follow the cart when it changes elsewhere (header dropdown, stock cap, reload).
+  useEffect(() => {
+    setText(String(item.quantity));
+  }, [item.quantity]);
+
+  return (
+    <Form.Control
+      type="number"
+      min="1"
+      max={Number.isFinite(max) ? Math.max(1, max) : undefined}
+      aria-label={`Quantity of ${item.name}`}
+      value={text}
+      onChange={(e) => {
+        // Input values are strings; the cart (and the server) need whole numbers.
+        const quantity = parseInt(e.target.value, 10);
+        if (quantity >= 1) {
+          const capped = Math.min(quantity, Math.max(1, max));
+          setText(String(capped));
+          onChange(item.id, capped);
+        } else {
+          setText(e.target.value);
+        }
+      }}
+      onBlur={() => setText(String(item.quantity))}
+    />
+  );
+}
 
 function Cart() {
   const navigate = useNavigate();
@@ -36,7 +71,7 @@ function Cart() {
       ) : (
         <Row>
           <Col md={8}>
-            <Table striped bordered hover>
+            <Table striped bordered hover responsive>
               <thead>
                 <tr>
                   <th>Product</th>
@@ -52,16 +87,7 @@ function Cart() {
                     <td>{item.name}</td>
                     <td>${Number(item.price).toFixed(2)}</td>
                     <td>
-                      <Form.Control
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          // Input values are strings; the cart (and the server) need whole numbers.
-                          const quantity = parseInt(e.target.value, 10);
-                          if (quantity >= 1) updateQuantity(item.id, quantity);
-                        }}
-                      />
+                      <QuantityInput item={item} onChange={updateQuantity} />
                     </td>
                     <td>${(item.price * item.quantity).toFixed(2)}</td>
                     <td>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Tabs, Tab, Card, Table, Button, Form, Modal } from 'react-bootstrap';
+import { Container, Tabs, Tab, Card, Table, Button, Form, Modal, Spinner } from 'react-bootstrap';
 import { PlusCircle, Edit, Trash, User, Clock, CreditCard } from 'lucide-react';
 import { useData } from '../../contexts/DataContext.js';
 import OrderStatusEditor from '../../components/admin/OrderStatusEditor.js';
@@ -10,6 +10,28 @@ import { useNavigate } from 'react-router-dom';
 
 // Order lines from checkout carry price (dollars) and unitPriceCents; older rows may have only one.
 const itemPrice = (item) => Number(item.price ?? (item.unitPriceCents ?? 0) / 100) || 0;
+
+// "$308.10", not "$308.1" — amounts arrive as numbers or DECIMAL strings.
+const money = (value) => `$${(Number(value) || 0).toFixed(2)}`;
+
+// Dates arrive as ISO strings or (customers.lastLogin) UTC strings; show them in local time.
+const formatDate = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+};
+
+const customerName = (customer) =>
+  customer
+    ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.name || customer.email || '—'
+    : 'Guest';
+
+// customers.ipHistory is a list of IP strings (see recordLogin in Controllers/Users.js);
+// older rows may hold { ip, timestamp } objects.
+const ipEntries = (customer) =>
+  (Array.isArray(customer?.ipHistory) ? customer.ipHistory : []).map((entry) =>
+    typeof entry === 'string' ? { ip: entry } : entry
+  );
 
 const AdminPanel = () => {
 
@@ -67,12 +89,17 @@ const AdminPanel = () => {
   // Product management functions - simplified to match other data handling
   const handleAddProduct = async () => {
     try {
-      if (currentProduct.id) {
+      // The category field is typed as "a, b, c": drop the stray spaces and empty tags.
+      const product = {
+        ...currentProduct,
+        category: currentProduct.category.map((tag) => String(tag).trim()).filter(Boolean)
+      };
+      if (product.id) {
         // Edit existing product
-        await updateProduct(currentProduct.id, currentProduct);
+        await updateProduct(product.id, product);
       } else {
         // Add new product
-        await createProduct(currentProduct);
+        await createProduct(product);
       }
       // Refresh products data
       await getProducts();
@@ -80,6 +107,7 @@ const AdminPanel = () => {
       resetProductForm();
     } catch (error) {
       console.error('Error adding/editing product:', error);
+      window.alert(`Could not save the product: ${error.message}`);
     }
   };
 
@@ -94,13 +122,15 @@ const AdminPanel = () => {
     setShowProductModal(true);
   };
 
-  const handleDeleteProduct = async (productId) => {
+  const handleDeleteProduct = async (product) => {
+    if (!window.confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
     try {
-      await deleteProduct(productId);
+      await deleteProduct(product.id);
       // Refresh products data
       await getProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
+      window.alert(`Could not delete the product: ${error.message}`);
     }
   };
 
@@ -156,7 +186,7 @@ const AdminPanel = () => {
     const customer = customers.find(c => c.id === transaction.customerId);
     const exportData = {
       ...transaction,
-      customerName: customer ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') : null,
+      customerName: customer ? customerName(customer) : null,
       customerEmail: customer?.email ?? null,
       order: orders.find(o => o.id === transaction.orderId) ?? null,
       exportDate: new Date().toISOString()
@@ -199,38 +229,28 @@ const AdminPanel = () => {
 
   if (!authChecked) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <div className="spinner" />
-        <p className="mt-4 text-gray-600 text-lg">Checking authentication…</p>
-      </div>
+      <Container className="mt-5 text-center">
+        <Spinner animation="border" size="sm" /> Checking authentication…
+      </Container>
     );
   }
 
   if (authError === "NOT_AUTHENTICATED") {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <h2 className="text-2xl font-semibold mb-4">Please log in as an admin to access this page.</h2>
-        <button
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-          onClick={() => navigate('/home')}
-        >
-          Return to Home
-        </button>
-      </div>
+      <Container className="mt-5 text-center">
+        <h2 className="mb-4">Please log in as an admin to access this page.</h2>
+        <Button variant="primary" className="me-2" onClick={() => navigate('/login')}>Log in</Button>
+        <Button variant="outline-secondary" onClick={() => navigate('/home')}>Return to Home</Button>
+      </Container>
     );
   }
 
   if (authError === "NOT_ADMIN") {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <h2 className="text-2xl font-semibold mb-4">You do not have permission to access this page.</h2>
-        <button
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-          onClick={() => navigate('/home')}
-        >
-          Return to Home
-        </button>
-      </div>
+      <Container className="mt-5 text-center">
+        <h2 className="mb-4">You do not have permission to access this page.</h2>
+        <Button variant="primary" onClick={() => navigate('/home')}>Return to Home</Button>
+      </Container>
     );
   }
 
@@ -252,7 +272,7 @@ if (!authError) {
                     setShowProductModal(true);
                   }}
                 >
-                  <PlusCircle className="mr-2" /> Add Product
+                  <PlusCircle size={18} className="me-1" /> Add Product
                 </Button>
               </div>
             </Card.Header>
@@ -280,7 +300,7 @@ if (!authError) {
                         <td>{product.name}</td>
                         <td>{product.summary}</td>
                         <td>{product.description}</td>
-                        <td>${product.price || '0.00'}</td>
+                        <td>{money(product.price)}</td>
                         <td>
                           <div style={{ 
                             maxHeight: '200px', 
@@ -333,6 +353,7 @@ if (!authError) {
                             variant="warning" 
                             size="sm" 
                             className="me-2"
+                            aria-label={`Edit ${product.name}`}
                             onClick={() => handleEditProduct(product)}
                           >
                             <Edit size={16} />
@@ -340,7 +361,8 @@ if (!authError) {
                           <Button 
                             variant="danger" 
                             size="sm"
-                            onClick={() => handleDeleteProduct(product.id)}
+                            aria-label={`Delete ${product.name}`}
+                            onClick={() => handleDeleteProduct(product)}
                           >
                             <Trash size={16} />
                           </Button>
@@ -381,9 +403,9 @@ if (!authError) {
                     {customers.map(customer => (
                       <tr key={customer.id}>
                         <td>{customer.id}</td>
-                        <td>{[customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.name || '—'}</td>
+                        <td>{customerName(customer)}</td>
                         <td>{customer.email}</td>
-                        <td>{customer.lastLogin}</td>
+                        <td>{formatDate(customer.lastLogin)}</td>
                         <td>
                           <div style={{ 
                             maxHeight: '100px', 
@@ -395,14 +417,12 @@ if (!authError) {
                               <thead>
                                 <tr>
                                   <th>IP</th>
-                                  <th>Timestamp</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {customer.ipHistory?.map((history, index) => (
+                                {ipEntries(customer).map((history, index) => (
                                   <tr key={index}>
                                     <td>{history.ip}</td>
-                                    <td>{history.timestamp}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -410,7 +430,7 @@ if (!authError) {
                           </div>
                         </td>
                         <td>{customer.totalOrders}</td>
-                        <td>${customer.totalSpent}</td>
+                        <td>{money(customer.totalSpent)}</td>
                         <td>
                           <Button 
                             variant="info" 
@@ -457,10 +477,10 @@ if (!authError) {
                       <tr key={transaction.id}>
                         <td>{transaction.id}</td>
                         <td>{transaction.orderId}</td>
-                        <td>{transaction.customerId}</td>
-                        <td>${transaction.amount}</td>
+                        <td>{transaction.customerId ?? 'Guest'}</td>
+                        <td>{money(transaction.amount)}</td>
                         <td>{transaction.status}</td>
-                        <td>{transaction.timestamp}</td>
+                        <td>{formatDate(transaction.timestamp)}</td>
                         <td>{transaction.paymentMethod}</td>
                         <td>
                           <Button 
@@ -522,14 +542,14 @@ if (!authError) {
                             <table className="table table-striped table-bordered mb-0">
                               <thead>
                                 <tr>
-                                  <th>Product ID</th>
+                                  <th>Product</th>
                                   <th>Quantity</th>
                                   <th>Price</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {order.orderItems?.map(item => (
-                                  <tr key={item.productId}>
+                                {order.orderItems?.map((item, index) => (
+                                  <tr key={index}>
                                     <td>{item.name ? `${item.name} (#${item.productId})` : item.productId}</td>
                                     <td>{item.quantity}</td>
                                     <td>${itemPrice(item).toFixed(2)}</td>
@@ -539,7 +559,7 @@ if (!authError) {
                             </table>
                           </div>
                         </td>
-                        <td>${order.totalAmount}</td>
+                        <td>{money(order.totalAmount)}</td>
                         <td>{order.shippingAddress}</td>
                         <td>{order.paymentMethod}</td>
                         <td><OrderStatusEditor order={order} /></td>
@@ -674,7 +694,7 @@ if (!authError) {
                 <tbody>
                   <tr>
                     <td><strong>Name</strong></td>
-                    <td>{selectedCustomer.name}</td>
+                    <td>{customerName(selectedCustomer)}</td>
                   </tr>
                   <tr>
                     <td><strong>Email</strong></td>
@@ -682,7 +702,7 @@ if (!authError) {
                   </tr>
                   <tr>
                     <td><strong>Last Login</strong></td>
-                    <td>{selectedCustomer.lastLogin}</td>
+                    <td>{formatDate(selectedCustomer.lastLogin)}</td>
                   </tr>
                   <tr>
                     <td><strong>Total Orders</strong></td>
@@ -690,28 +710,30 @@ if (!authError) {
                   </tr>
                   <tr>
                     <td><strong>Total Spent</strong></td>
-                    <td>${selectedCustomer.totalSpent}</td>
+                    <td>{money(selectedCustomer.totalSpent)}</td>
                   </tr>
                 </tbody>
               </Table>
 
               <h5 className="mt-4">IP History</h5>
-              <Table striped bordered>
-                <thead>
-                  <tr>
-                    <th>IP Address</th>
-                    <th>Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedCustomer.ipHistory?.map((entry, index) => (
-                    <tr key={index}>
-                      <td>{entry.ip}</td>
-                      <td>{entry.timestamp}</td>
+              {ipEntries(selectedCustomer).length === 0 ? (
+                <p className="text-muted">No logins recorded yet.</p>
+              ) : (
+                <Table striped bordered>
+                  <thead>
+                    <tr>
+                      <th>IP Address</th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {ipEntries(selectedCustomer).map((entry, index) => (
+                      <tr key={index}>
+                        <td>{entry.ip}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
             </>
           )}
         </Modal.Body>
@@ -740,11 +762,11 @@ if (!authError) {
                   </tr>
                   <tr>
                     <td><strong>Customer</strong></td>
-                    <td>{customers?.find(c => c.id === selectedTransaction.customerId)?.name}</td>
+                    <td>{customerName(customers?.find(c => c.id === selectedTransaction.customerId))}</td>
                   </tr>
                   <tr>
                     <td><strong>Amount</strong></td>
-                    <td>${selectedTransaction.amount}</td>
+                    <td>{money(selectedTransaction.amount)}</td>
                   </tr>
                   <tr>
                     <td><strong>Status</strong></td>
@@ -763,7 +785,7 @@ if (!authError) {
                   </tr>
                   <tr>
                     <td><strong>Timestamp</strong></td>
-                    <td>{selectedTransaction.timestamp}</td>
+                    <td>{formatDate(selectedTransaction.timestamp)}</td>
                   </tr>
                 </tbody>
               </Table>
@@ -780,7 +802,7 @@ if (!authError) {
                         </div>
                         <div className="timeline-content">
                           <div className="fw-bold">{event.status}</div>
-                          <div className="text-muted small">{event.timestamp}</div>
+                          <div className="text-muted small">{formatDate(event.date ?? event.timestamp)}</div>
                           {event.notes?.map((note, noteIndex) => (
                             <div key={noteIndex} className="timeline-notes mt-1">{note.details}</div>
                           ))}
@@ -820,7 +842,7 @@ if (!authError) {
                     <tfoot>
                       <tr>
                         <td colSpan="3" className="text-end"><strong>Total</strong></td>
-                        <td><strong>${selectedTransaction.amount}</strong></td>
+                        <td><strong>{money(selectedTransaction.amount)}</strong></td>
                       </tr>
                     </tfoot>
                   </Table>

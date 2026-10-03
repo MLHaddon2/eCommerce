@@ -216,8 +216,10 @@ export const DataProvider = ({ children }) => {
       
       const res = await axios.get(`/api/customers/get/${id}`);
       if (res.status === 200) {
-        setCustomer(res.data);
-        return res.data;
+        // The server wraps it: { message, customer }.
+        const found = res.data.customer || res.data;
+        setCustomer(found);
+        return found;
       } else {
         throw new Error('Customer not found');
       }

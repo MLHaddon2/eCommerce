@@ -3,7 +3,7 @@
 // so no MySQL server or real .env secrets are needed.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeClient, registerUser, makeAdmin, Product, Users } from './helpers.js';
+import { makeClient, registerUser, makeAdmin, Product, Users, Customers } from './helpers.js';
 
 /* ── Auth ──────────────────────────────────────────────────────────────── */
 
@@ -86,6 +86,13 @@ test('forged cookies do not grant admin', async () => {
   client.jar.set('username', 'Admin');
   client.jar.set('isAuthenticated', 'true');
   assert.equal((await client.get('/api/customers/get')).status, 403);
+});
+
+test('the product list is always a 200 array, even when the catalogue is empty', async () => {
+  await Product.destroy({ where: {} });
+  const res = await makeClient().get('/api/products/getallhistory');
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.data, []);
 });
 
 test('only admins can change products, and update responds instead of hanging', async () => {
@@ -318,4 +325,24 @@ test('responses carry security headers (TODO 10)', async () => {
   assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(res.headers.get('x-powered-by'), null, 'Express version not advertised');
   assert.ok(res.headers.get('x-frame-options'));
+});
+
+test('a login with no customer profile gets a blank one and can fill it in', async () => {
+  const client = makeClient();
+  const creds = await registerUser(client);
+  // e.g. an admin created by scripts/seed.js: a users row with no customers row.
+  await Customers.destroy({ where: { email: creds.email } });
+
+  const blank = await client.get('/api/me/customer');
+  assert.equal(blank.status, 200);
+  assert.equal(blank.data.customer.email, creds.email);
+  assert.equal(blank.data.customer.firstName, '');
+
+  const saved = await client.put('/api/me/customer', { firstName: 'Ada', lastName: 'Admin', address: '9 Shop Rd' });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.data.customer.firstName, 'Ada');
+
+  const profile = await client.get('/api/me/customer');
+  assert.equal(profile.data.customer.address, '9 Shop Rd');
+  assert.equal(await Customers.count({ where: { email: creds.email } }), 1);
 });

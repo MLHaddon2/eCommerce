@@ -1,7 +1,7 @@
 import React from 'react';
 import { Col, Card, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { useCart } from '../contexts/CartContext';
+import { useCart, isSoldOut } from '../contexts/CartContext';
 
 /**
  * Shared ProductCard component used by both Home.js and Browse.js.
@@ -9,6 +9,7 @@ import { useCart } from '../contexts/CartContext';
  */
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
+  const soldOut = isSoldOut(product);
 
   return (
     <Col md={4} className="mb-4">
@@ -23,13 +24,13 @@ const ProductCard = ({ product }) => {
           <Card.Title>{product.name}</Card.Title>
           <Card.Text className="text-muted">{product.summary}</Card.Text>
           <div className="mt-auto">
-            <p className="h5 mb-3">${product.price}</p>
+            <p className="h5 mb-3">${Number(product.price).toFixed(2)}</p>
             <div className="d-flex gap-2">
               <Link to={`/product/${product.id}`} className="text-decoration-none">
                 <Button variant="primary">View Details</Button>
               </Link>
-              <Button variant="success" onClick={() => addToCart(product)}>
-                Add to Cart
+              <Button variant="success" disabled={soldOut} onClick={() => addToCart(product)}>
+                {soldOut ? 'Out of Stock' : 'Add to Cart'}
               </Button>
             </div>
           </div>

@@ -39,10 +39,8 @@ export const getProduct = async (req, res) => {
 
 export const getProducts = async (req, res) => {
   try {
+    // An empty catalogue is a valid answer ([]), not an error.
     const products = await Product.findAll();
-    if (!products || products.length === 0) {
-      return res.status(404).json({ message: "No products found" });
-    };
     for await (const product of products) { 
       // Parse reviews if it comes back as a string
       product.reviews = typeof product.reviews === 'string' 

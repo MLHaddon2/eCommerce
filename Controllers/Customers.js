@@ -70,8 +70,9 @@ export const updateCustomer = async (req, res) => {
       updateData.lastLogin = new Date().toUTCString();
     }
 
-    const updatedCustomer = await Customers.update(updateData, { where: { id } });
-    res.status(200).json({ message: "Customer updated successfully", updatedCustomer });
+    // Return the row itself: Customers.update() only resolves to [affectedCount].
+    await customer.update(updateData);
+    res.status(200).json({ message: "Customer updated successfully", updatedCustomer: customer });
   } catch (error) {
     return handleError(res, 'Update customer', error);
   }

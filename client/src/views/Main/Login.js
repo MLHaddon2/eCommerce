@@ -33,15 +33,17 @@ function Login() {
   };
 
   return (
-    <div className="mw-50 m-auto" style={{ width: '400px' }}>
+    // maxWidth (not a fixed width) so the form fits phone screens.
+    <div className="mx-auto mt-4 px-3 text-start" style={{ maxWidth: '400px' }}>
       {error && <p className="text-danger text-center">{error}</p>}
       <LoginForm
         inputs={user}
         handleChange={handleFormChange}
         handleSubmit={handleFormSubmit}
       />
-      <p className="forgot-password text-right">
-        <Link to="/forgot-password">Forgot password?</Link>
+      {/* There is no self-service password reset yet, so this goes to the contact form. */}
+      <p className="forgot-password mt-2">
+        Forgot your password? <Link to="/contact">Contact us</Link>
       </p>
     </div>
   );

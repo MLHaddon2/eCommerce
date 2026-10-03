@@ -155,6 +155,7 @@ function Checkout() {
   }
 
   const readyToPay = Boolean(quote) && !quoteLoading && !loading && emailLooksValid;
+  const needsState = !isDonationOnly && !shippingState;
 
   return (
     <Container className="mt-4">
@@ -225,7 +226,9 @@ function Checkout() {
                 <div className="text-center my-2"><Spinner animation="border" size="sm" /> Calculating…</div>
               )}
               {!quote && !quoteLoading && (
-                <p className="text-muted mb-0">Choose a shipping state to see your total.</p>
+                <p className="text-muted mb-0">
+                  {needsState ? 'Choose a shipping state to see your total.' : "We couldn't price this order — see the message above."}
+                </p>
               )}
               {quote && !quoteLoading && (
                 <>
@@ -282,10 +285,8 @@ function Checkout() {
               <Alert variant="info">Enter an email for your receipt to continue.</Alert>
             )}
 
-            {!quote && !quoteLoading && (
-              <Alert variant="info">
-                {isDonationOnly ? 'Loading your total…' : 'Choose a shipping state to continue.'}
-              </Alert>
+            {!quote && !quoteLoading && needsState && (
+              <Alert variant="info">Choose a shipping state to continue.</Alert>
             )}
 
             {paymentMethod === 'square' && quote && (

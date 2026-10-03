@@ -2,7 +2,7 @@ const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => 
   return (
     <form onSubmit={handleSubmit}>
       <h3>Signup</h3>
-      <div className="form-group">
+      <div className="form-group mb-2">
           <input
             type="text"
             name="firstName"
@@ -14,7 +14,7 @@ const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => 
             required
           />
       </div>
-      <div className="form-group">
+      <div className="form-group mb-2">
           <input
             type="text"
             name="lastName"
@@ -26,18 +26,18 @@ const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => 
             required
           />
       </div>
-      <div className="form-group">
+      <div className="form-group mb-2">
           <input
             type="text"
             name="address"
             className="form-control"
-            autoComplete="address"
+            autoComplete="street-address"
             onChange={handleChange}
             value={inputs.address}
             placeholder="Address"
           />
       </div>
-      <div className="form-group">
+      <div className="form-group mb-2">
           <input
             type="text"
             name="username"
@@ -49,7 +49,7 @@ const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => 
             required
           />
       </div>
-      <div className="form-group">
+      <div className="form-group mb-2">
           <input
             type="email"
             name="email"
@@ -61,7 +61,7 @@ const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => 
             required
           />
       </div>
-      <div className="form-group">
+      <div className="form-group mb-2">
           <input
             type="password"
             name="password"
@@ -74,7 +74,7 @@ const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => 
             required
           />
       </div>
-      <div className="form-group">
+      <div className="form-group mb-2">
           <input
             type="password"
             name="confPwd"
@@ -88,7 +88,7 @@ const SignupForm = ({ inputs, handleChange, handleSubmit, loading = false }) => 
       </div>
       <button
         type="submit"
-        className="btn btn-dark btn-lg btn-block"
+        className="btn btn-dark btn-lg btn-block mt-3"
         disabled={loading}
       >
         {loading ? 'Creating Account...' : 'Submit'}

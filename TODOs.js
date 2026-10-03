@@ -234,6 +234,46 @@
 //         MAIL_FROM="Shoe Store <skelesitesmlh@gmail.com>"
 //       This also turns on real order receipts and shipping emails (TODO 5).
 
+// ── Glitch sweep (2026-10-02) ────────────────────────────────────────────────
+// Ran the server tests, both dev servers, and every page in a headless browser as a guest, a customer
+// and an admin (desktop and phone width), watching the node and browser consoles.
+
+//DONE TODO 27: Glitches found and fixed.
+// DONE: Storefront
+//       - Unknown URLs (and the old "Forgot password?" link) showed a blank page. Added a "Page not found" route.
+//       - A product that doesn't exist said "Loading..." forever. It now says "Product not found". The product
+//         page also no longer flashes the previously viewed product while the new one loads.
+//       - Phone menu: the sidebar showed icons with no labels and stayed open after picking a link.
+//       - Login and Signup were a fixed 400px wide, so fields ran off the edge of a phone screen.
+//         The "Remember me" checkbox did nothing, so it's gone (sessions already last 7 days).
+//       - The cart quantity box couldn't be cleared to type a new number, and accepted more than is in stock
+//         (checkout then refused the order). Quantities are capped at the stock, and sold-out products show
+//         "Out of Stock" instead of "Add to Cart".
+//       - Checkout said "Choose a shipping state" when a state was already chosen and pricing had failed.
+//       - Prices on product cards showed "$25" / "$59.9"; they're always two decimals now.
+//       - Removing an item from the header cart dropdown closed the dropdown; the dropdown arrows wrapped
+//         under their icons.
+//       - The browser tab said "React App".
+// DONE: Account
+//       - The Profile tab showed "Customer profile not found" for logins with no customer row (the seeded
+//         admin, or anyone promoted with set-admin). GET /api/me/customer now returns a blank profile and
+//         the first save creates the row.
+// DONE: Admin panel
+//       - Customer and transaction detail windows showed a blank name; IP history showed empty rows;
+//         amounts showed "$308.1"; dates were raw ISO strings; the transaction timeline had no dates.
+//       - Deleting a product had no confirmation, and a failed product save/delete only logged to the console.
+//       - The "not logged in" / "no permission" screens used Tailwind classes this app doesn't load.
+// DONE: Server / tooling
+//       - GET /api/products/getallhistory returned 404 for an empty catalogue; it returns [] now.
+//       - PUT /api/customers/update/:id returned [1] instead of the updated customer.
+//       - `npm test` in client/ failed (it was still the create-react-app placeholder test). It now runs 3 smoke
+//         tests; tests/api.test.js gained 2 (41 server tests in total).
+//       - Updated the browserslist data the client dev server was warning about.
+// TODO 27b: There is no password reset. "Forgot your password?" on the login page links to the contact form
+//       for now. A real reset needs an emailed one-time link, so it depends on SMTP being set up (TODO 26b).
+
 // Still needs you: TODO 3 (Klarna/Afterpay sandbox credentials), 9 (production keys), 11b (rotate the committed
 // secrets), 16b (which EC2 host is live), 24b (a PayPal sandbox buyer run), 5b (a shipping provider),
-// 26b (a Gmail app password so contact messages are really sent).
+// 26b (a Gmail app password so contact messages are really sent), 27b (password reset, after 26b).
+
+// TODO 28A: Change the expected result when password doesn't match on login.

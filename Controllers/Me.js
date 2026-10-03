@@ -16,11 +16,14 @@ const findMyCustomer = (req, attributes) =>
   Customers.findOne({ where: { email: req.email }, attributes });
 
 // GET /api/me/customer
+// Logins with no shop profile yet (e.g. an admin created by scripts/seed.js or set-admin)
+// get a blank one to fill in instead of a 404; the row is created on the first save.
 export const getMyCustomer = async (req, res) => {
   try {
     const customer = await findMyCustomer(req, PROFILE_FIELDS);
-    if (!customer) return res.status(404).json({ message: "Customer profile not found" });
-    res.status(200).json({ customer });
+    res.status(200).json({
+      customer: customer || { firstName: '', lastName: '', email: req.email, address: '' }
+    });
   } catch (error) {
     return handleError(res, 'Get my profile', error);
   }
@@ -30,8 +33,13 @@ export const getMyCustomer = async (req, res) => {
 // account, and totals/history are server-managed, so none of those are editable here.
 export const updateMyCustomer = async (req, res) => {
   try {
-    const customer = await findMyCustomer(req);
-    if (!customer) return res.status(404).json({ message: "Customer profile not found" });
+    const customer = await findMyCustomer(req) || await Customers.create({
+      email: req.email,
+      cartItems: [],
+      ipHistory: [],
+      totalOrders: 0,
+      totalSpent: 0
+    });
 
     const updates = {};
     for (const field of ['firstName', 'lastName', 'address']) {

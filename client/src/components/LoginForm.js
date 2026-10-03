@@ -1,40 +1,34 @@
 const LoginForm = ({ inputs, handleChange, handleSubmit }) => {
   return (
-    <form onSubmit={handleSubmit} className="mw-50 m-auto" style={{width: "400px"}}>
+    <form onSubmit={handleSubmit}>
       <h3>Log in</h3>
-      <div className="form-group">
-          <label>Username</label>
-          <input 
-            type="text" 
+      <div className="form-group mb-2">
+          <label htmlFor="loginUsername">Username</label>
+          <input
+            type="text"
+            id="loginUsername"
             name="username"
-            className="form-control" 
+            className="form-control"
             autoComplete="username"
             onChange={handleChange}
-            placeholder= {inputs.username}
+            value={inputs.username}
+            required
           />
       </div>
-      <div className="form-group">
-          <label>Password</label>
-          <input 
-            type="password" 
+      <div className="form-group mb-2">
+          <label htmlFor="loginPassword">Password</label>
+          <input
+            type="password"
+            id="loginPassword"
             name="password"
             className="form-control"
-            autoComplete="password"
-            onChange={handleChange} 
-            placeholder={inputs.password}
+            autoComplete="current-password"
+            onChange={handleChange}
+            value={inputs.password}
+            required
           />
       </div>
-      <div className="form-group">
-          <div className="custom-control custom-checkbox">
-              <input 
-                type="checkbox" 
-                className="custom-control-input" 
-                id="customCheck1" 
-              />
-              <label className="custom-control-label" htmlFor="customCheck1">Remember me</label>
-          </div>
-      </div>
-      <button type="submit" className="btn btn-dark btn-lg btn-block">Sign in</button>
+      <button type="submit" className="btn btn-dark btn-lg btn-block mt-3">Sign in</button>
     </form>
   );
 }

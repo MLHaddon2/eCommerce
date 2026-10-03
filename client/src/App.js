@@ -12,6 +12,7 @@ import Account from './views/Main/Account.js';
 import ProductPage from './views/Main/ProductPage.js';
 import Contact from './views/Main/Contact.js';
 import AdminPanel from './views/Admin/AdminPanel.js';
+import NotFound from './views/Main/NotFound.js';
 import { AuthProvider } from './contexts/AuthContext.js';
 import { DataProvider } from './contexts/DataContext.js';
 import { CartProvider } from './contexts/CartContext.js';
@@ -60,6 +61,7 @@ function App() {
               <Route path="/adminpanel">
                 <Route index element={ <AdminPanel /> } />
               </Route>
+              <Route path="*" element={ <NotFound /> } />
             </Routes>
         <footer className="text-center">
           <div className="container">

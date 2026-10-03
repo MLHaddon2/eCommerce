@@ -13,7 +13,7 @@ import {
 } from 'react-bootstrap';
 import { StarFill, Star } from 'react-bootstrap-icons';
 import { useData } from '../../contexts/DataContext.js';
-import { useCart } from '../../contexts/CartContext.js';
+import { useCart, isSoldOut } from '../../contexts/CartContext.js';
 import { useAuth } from '../../contexts/AuthContext.js';
 import axios from '../../api/axios.js';
 
@@ -30,18 +30,39 @@ const ProductPage = () => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [editingReviewId, setEditingReviewId] = useState(null); // null = writing a new review
+  const [missingId, setMissingId] = useState(null); // the id that turned out not to exist
 
   useEffect(() => {
-    getProduct(id);
+    let cancelled = false;
+    // getProduct resolves to null when the product doesn't exist (or the request failed).
+    getProduct(id).then((found) => {
+      if (!cancelled && !found) setMissingId(id);
+    });
+    return () => { cancelled = true; };
   }, [id, getProduct]);
 
-  if (!product) {
+  if (missingId === id) {
+    return (
+      <Container className="py-5 text-center">
+        <h2 className="mb-3">Product not found</h2>
+        <p className="text-muted">This product doesn't exist or is no longer available.</p>
+        <Button as={Link} to="/browse" variant="primary">Browse Products</Button>
+      </Container>
+    );
+  }
+
+  // The context holds the last product viewed, so wait until it's the one in the URL.
+  if (!product || String(product.id) !== String(id)) {
     return (
       <Container className="py-5">
         <h2>Loading...</h2>
       </Container>
     );
   }
+
+  const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+  const categories = Array.isArray(product.category) ? product.category : [];
+  const soldOut = isSoldOut(product);
 
   const renderStars = (rating) => {
     return [...Array(5)].map((_, index) =>
@@ -54,9 +75,8 @@ const ProductPage = () => {
   };
 
   const averageRating =
-    product.reviews.length > 0
-      ? product.reviews.reduce((acc, review) => acc + review.rating, 0) /
-        product.reviews.length
+    reviews.length > 0
+      ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
       : 0;
 
   const isOwnReview = (review) => userId != null && String(review.userId) === String(userId);
@@ -123,10 +143,10 @@ const ProductPage = () => {
 
         <Col md={6}>
           <h1>{product.name}</h1>
-          <h2 className="text-primary mb-4">${product.price.toFixed(2)}</h2>
+          <h2 className="text-primary mb-4">${Number(product.price).toFixed(2)}</h2>
 
           <div className="mb-3">
-            {product.category.map((cat, index) => (
+            {categories.map((cat, index) => (
               <Badge bg="secondary" className="me-2" key={index}>
                 {cat}
               </Badge>
@@ -144,15 +164,16 @@ const ProductPage = () => {
                 variant="primary"
                 size="lg"
                 className="flex-grow-1"
+                disabled={soldOut}
                 onClick={() => addToCart(product)}
               >
-                Add to Cart
+                {soldOut ? 'Out of Stock' : 'Add to Cart'}
               </Button>
-              <Link to="/cart">
-                <Button variant="success" size="lg" onClick={() => addToCart(product)}>
+              {!soldOut && (
+                <Button as={Link} to="/cart" variant="success" size="lg" onClick={() => addToCart(product)}>
                   Buy Now
                 </Button>
-              </Link>
+              )}
             </div>
 
             {/* --- WRITE REVIEW BUTTON --- */}
@@ -171,7 +192,7 @@ const ProductPage = () => {
             )}
 
             <h4>Customer Reviews</h4>
-            {product.reviews.length === 0 ? (
+            {reviews.length === 0 ? (
               <p className="text-muted">No reviews yet.</p>
             ) : (
               <>
@@ -183,7 +204,7 @@ const ProductPage = () => {
                 </div>
 
                 <ListGroup>
-                  {product.reviews.map((review, index) => (
+                  {reviews.map((review, index) => (
                     <ListGroup.Item key={review.id || index}>
                       <div className="d-flex align-items-center mb-1">
                         {renderStars(review.rating)}

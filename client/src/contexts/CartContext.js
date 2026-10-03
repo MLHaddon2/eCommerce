@@ -3,6 +3,17 @@ import axios from '../api/axios';
 
 const CartContext = createContext();
 
+// How many of a product the cart will hold: its stock, or no limit for donations and
+// for items with no stock figure. The server re-checks stock at checkout — this just
+// stops the cart promising more than the shop has.
+export const maxQuantityFor = (product) => {
+  if (!product || product.isDonation || product.availability == null) return Infinity;
+  const stock = Number(product.availability);
+  return Number.isFinite(stock) ? Math.max(0, stock) : Infinity;
+};
+
+export const isSoldOut = (product) => maxQuantityFor(product) < 1;
+
 // The server decides whose cart this is: the logged-in customer's cart when the
 // auth cookie is valid, otherwise the guest cart for the httpOnly sessionId cookie.
 // The client never sends a user id or IP address.
@@ -44,9 +55,12 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = async (product) => {
     const existing = cartItems.find((i) => i.id === product.id);
+    const quantity = Math.min((existing?.quantity || 0) + 1, maxQuantityFor(product));
+    if (quantity < 1 || quantity === existing?.quantity) return; // sold out, or already holding all of it
+
     const updated = existing
-      ? cartItems.map((i) => (i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i))
-      : [...cartItems, { ...product, quantity: 1 }];
+      ? cartItems.map((i) => (i.id === product.id ? { ...i, quantity } : i))
+      : [...cartItems, { ...product, quantity }];
 
     setCartItems(updated);
     await syncCartWithDatabase(updated);
@@ -61,7 +75,7 @@ export const CartProvider = ({ children }) => {
   const updateQuantity = async (productId, rawQuantity) => {
     const quantity = parseInt(rawQuantity, 10) || 0;
     const updated = quantity > 0
-      ? cartItems.map((i) => (i.id === productId ? { ...i, quantity } : i))
+      ? cartItems.map((i) => (i.id === productId ? { ...i, quantity: Math.max(1, Math.min(quantity, maxQuantityFor(i))) } : i))
       : cartItems.filter((i) => i.id !== productId);
     setCartItems(updated);
     await syncCartWithDatabase(updated);

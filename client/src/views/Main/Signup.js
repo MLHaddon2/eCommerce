@@ -59,7 +59,8 @@ function Signup() {
   };
 
   return (
-    <div className="mw-50 m-auto" style={{ width: '400px' }}>
+    // maxWidth (not a fixed width) so the form fits phone screens.
+    <div className="mx-auto mt-4 px-3 text-start" style={{ maxWidth: '400px' }}>
       {error && <p className="text-danger text-center">{error}</p>}
       <SignupForm
         inputs={user}
@@ -67,7 +68,7 @@ function Signup() {
         handleSubmit={handleFormSubmit}
         loading={loading}
       />
-      <p className="text-right">
+      <p className="mt-2">
         Already registered? <Link to="/login">Log in</Link>
       </p>
     </div>
